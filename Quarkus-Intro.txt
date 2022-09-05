@@ -1,0 +1,325 @@
+What is Quarkus?
+  Quarkus is a framework to built on the top of Various java and JEE Standards.
+
+What is Java?
+   Java is a technology  which was created to solve the problem of software portability across multi platform(os and hardware) with single source code base / and compiled code(byte) with help of "VM" - (JVM -abstract computer) based computing.
+ Which was not possible in c/c++.
+
+Java refers many things 
+  - a language  - java programming language
+  - a runtime  - jvm
+  - tools - compilers,decompilers,packagers...libs(api) (JDK)
+
+Sun Micro systems setup a body/commette in order to standarize the java technology.
+  -JCP
+
+What is JCP ?
+ Java Community Process is non profitable organization whoes responsability is to standardize the java technology (java echo system).
+
+What is JEP?
+ JDK Enchament Proposal, Oracle own body to enchance the features of java
+ The JDK Enhancement Proposal (or JEP) is a process drafted by Oracle Corporation for collecting proposals for enhancements to the Java Development Kit and OpenJDK.
+
+
+JSR-Java Specifcation Request.
+
+Every JSR has unique no - JSR-223
+
+Java Technology Classification
+
+1.JSE
+2.JEE
+3.JME
+
+1.JSE - Java Standard Edition
+  -Java language Spec
+  -Java VM Spec
+
+
+2.JEE - Java Enterise Edition
+ The Java Enterprise Edition offers APIs and tools for developing multitier enterprise applications.
+
+ -Application Development Specs
+    JPA Spec  - Vendor netural ORM Solutions
+    JSON Binding - JSON-B  
+    Java Servlet 
+    JAX-RS - Building Resfull API
+    JAX-WS - Building xml based webservices -SOAP Webservices
+    Bean Validation
+    JTA  - Java Transaction API
+ -Container Specs 
+    How to create Enterprise grade applications
+
+3.JME - Java Micro Edition
+   For building Device Apps , Mobile Development.
+
+
+Why JEE Spec failed In Modern Computing?
+
+     JEE Spec was developed to build traditional "Monolothic distributed,transactional, secure Applications"
+
+
+What if i want to use JEE Spec for building Microservices?
+
+ i cant use JEE Spec directly.
+
+What if i want to build standard based microservices based On JEE?
+
+                       "MicroProfile Specfication"
+
+MicroProfile
+
+Optimizing Enterprise Java - JEE for a Microservices Architecture.
+
+
+Micro Profile addresses the need for enterprise "java microservices"
+
+It is set of secifications for handling microservices design patterns. 
+
+MicroProfile enables JEE Developers to leverage their existing skill set while shifiting
+their focus from traditional monolithic applications to Micro Services
+
+
+MicroProfile is just collections of MicroServices Service Patterns on JEE standards
+
+Implmentations:
+
+1.Quarkus
+etc...
+
+MicroProfile Specs:
+
+1.JAX-RS - To create HTTP based Microservices-
+2.CDI - Context Dependency Injection - DI - Beans
+3.JSON-B
+4.Configuration
+5.Falut Management
+6.Health
+7.Mertics
+etc....
+
+..............................................................................................
+
+Quarkus itself who does not implement Microprofile specification directly.
+...............................................................................................
+What is Quarkus?
+
+ Quarkus is framwork built for building modern cloud and container native microservice,serverless architecture.
+
+Quarkus Features:
+
+1.Implements MicroProfile specification via smallRye project
+2.Quarkus implements Reactive Stack via smallRye Muntiny
+3.Quarkus implements non blocking architecture via Vert.x Engine
+4.Quarkus supports Kubernets,docker ready images
+5.Quarkus supports native apps via GraalVM
+     -Mandrel: A specialized distribution of GraalVM for Quarkus
+6.Quarkus supports hot reloading
+
+Quarkus is collection many projects - modules
+
+Modules:
+1.core
+2.web
+3.data
+4.messaging
+5.reactive
+6.cdi
+etc...
+.............................................................................................
+				How to setup projects
+............................................................................................
+
+how to use Maven as a build tool
+how to create and scaffold a new project
+how to deal with extensions
+how to enable live reload
+how to develop your application in your IDE
+how to compile your application natively
+how to setup Quarkus tools in Visual Studio Code, Eclipse IDE, Eclipse Che and IntelliJ
+
+Project Creations:
+
+1.via Quarkus cli tool
+2.via Maven
+   2.1.via command line
+   2.2.via https://code.quarkus.io/
+
+
+Quarkus Cli Work Flow:
+.....................
+
+Setup cli tool:
+https://quarkus.io/get-started
+
+Step : 1 : install jbang build tool via windows powershell with admin access
+
+iex "& { $(iwr https://ps.jbang.dev) } app install --fresh --force quarkus@quarkusio"
+[jbang] https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/2.7.5.Final/quarkus-cli-2.7.5.Final-runner.jar is not from a trusted source thus not running it automatically.
+
+If you trust the url to be safe to run you can do one of the following
+
+(1) Trust once: Add no trust, just download this time (can be run multiple times while cached)
+(2) Trust limited url in future: https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/
+(0) Cancel
+
+[jbang] Type in your choice and hit enter. Will automatically select option (0) after 30 seconds.
+1
+
+[
+Note : after installing , please close the shell/command prompt and relanuch
+
+Step 2: Test quarkus working or not
+ quarkus --help
+
+Usage: quarkus [-ehv] [--verbose] [-D=<String=String>]... [COMMAND]
+Options:
+  -h, --help            Display this help message.
+  -v, --version         Print version information and exit.
+  -e, --errors          Display error messages.
+      --verbose         Verbose mode.
+  -D=<String=String>    Java properties
+
+Commands:
+  create                  Create a new project.
+    app                   Create a Quarkus application project.
+    cli                   Create a Quarkus command-line project.
+    extension             Create a Quarkus extension project
+  build                   Build the current project.
+  dev                     Run the current project in dev (live coding) mode.
+  extension, ext          Configure extensions of an existing project.
+    list, ls              List platforms and extensions.
+    categories, cat       List extension categories.
+    add                   Add extension(s) to this project.
+    remove, rm            Remove extension(s) from this project.
+  registry                Configure Quarkus registry client
+    list                  List enabled Quarkus registries
+    add                   Add a Quarkus extension registry
+    remove                Remove a Quarkus extension registry
+  version                 Display version information.
+  completion              bash/zsh completion:  source <(quarkus completion)
+
+
+Step : 2: create quarkus app via Jbang tool
+
+Open Normal Command Prompt:
+
+quarkus create && cd code-with-quarkus
+
+
+Step 3: 
+
+How to run Quarkus Project?
+
+   Start running quarkus dev server
+
+3.1.Using Quarkus command
+
+> quarkus dev
+
+3.1.2. via MVN -Running the application in dev mode
+
+./mvnw compile quarkus:dev
+or
+mvn compile quarkus:dev
+......................................................................................
+				Quarkus Runtime tools options
+
+The following commands are currently available:
+
+== Continuous Testing
+
+[r] - Resume testing
+[o] - Toggle test output (disabled)
+
+== Exceptions
+
+[x] - Opens last exception in IDE (None)
+
+== HTTP
+
+[w] - Open the application in a browser
+[d] - Open the Dev UI in a browser
+
+== System
+
+[s] - Force restart
+[i] - Toggle instrumentation based reload (disabled)
+[l] - Toggle live reload (enabled)
+[j] - Toggle log levels (INFO)
+[h] - Shows this help
+[:] - Enters terminal mode
+[q] - Quits the application
+.....................................................................................
+			MicroServices - Service Design 
+.....................................................................................
+Distributed app development Pattern
+1.monolithic pattern -  traditional JEE were used for this pattern
+2.Microservice pattern - MicroProfile based JEE
+
+Micro service is architectural style for building distributed apps.
+Micro service focus is loosly coupled , indepandent dev,deployment,test,maintains apps and cloud based,container based.
+
+What is Service?
+  Represents Domain  Entities - Order,Purchase,User,Customer
+
+In Programmetic perspective?
+  Service is a program, Service is Object, Which represents state and behaviour...
+  Service is an API.
+
+How to design a Service /How design API?
+
+-REST API
+-RPC/RPI API
+-Message Driven API
+-GraphQL API
+
+Quarkus can support all types of microservice  service/api design implementations.
+
+REST API Design:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
