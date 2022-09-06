@@ -10,7 +10,7 @@ Java refers many things
   - a runtime  - jvm
   - tools - compilers,decompilers,packagers...libs(api) (JDK)
 
-Sun Micro systems setup a body/commette in order to standarize the java technology.
+Sun Micro systems setup a body/commeete in order to standarize the java technology.
   -JCP
 
 What is JCP ?
@@ -250,54 +250,6 @@ The following commands are currently available:
 [h] - Shows this help
 [:] - Enters terminal mode
 [q] - Quits the application
-.....................................................................................
-			MicroServices - Service Design 
-.....................................................................................
-Distributed app development Pattern
-1.monolithic pattern -  traditional JEE were used for this pattern
-2.Microservice pattern - MicroProfile based JEE
-
-Micro service is architectural style for building distributed apps.
-Micro service focus is loosly coupled , indepandent dev,deployment,test,maintains apps and cloud based,container based.
-
-What is Service?
-  Represents Domain  Entities - Order,Purchase,User,Customer
-
-In Programmetic perspective?
-  Service is a program, Service is Object, Which represents state and behaviour...
-  Service is an API.
-
-How to design a Service /How design API?
-
--REST API
--RPC/RPI API
--Message Driven API
--GraphQL API
-
-Quarkus can support all types of microservice  service/api design implementations.
-
-REST API Design:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1,0 +1,468 @@
+.....................................................................................
+			MicroServices - Service Design 
+.....................................................................................
+Distributed app development Pattern
+1.monolithic pattern -  traditional JEE were used for this pattern
+2.Microservice pattern - MicroProfile based JEE
+
+Micro service is architectural style for building distributed apps.
+Micro service focus is loosly coupled , indepandent dev,deployment,test,maintains apps and cloud based,container based.
+
+What is Service?
+  Represents Domain  Entities - Order,Purchase,User,Customer
+
+In Programmetic perspective?
+  Service is a program, Service is Object, Which represents state and behaviour...
+  Service is an API.
+
+How to design a Service /How design API?
+
+-REST API
+-RPC/RPI API
+-Message Driven API
+-GraphQL API
+
+Quarkus can support all types of microservice  service/api design implementations.
+
+REST API Design:
+
+We can Design REST API/Web in 2 styles
+
+1.REST API using /Blocking/Sync Programming model
+2.REST API using Reactive Programming with NonBlocking/Async
+
+....................................................................................
+				REST API Desing in JEE(MicroProfile)
+
+Java API for RESTful Web Services (JAX-RS) Specification:
+ Using this specifcation we design Rest api.
+
+Implementation for JAX-RS:
+.........................
+
+There are frameworks there to implement JAX-RS.
+
+RESTEasy:
+  RESTEasy is a JBoss / Red Hat project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is an implementation of the Jakarta RESTful Web Services, an Eclipse Foundation specification that provides a Java API for RESTful Web Services over the HTTP protocol.
+Moreover, RESTEasy also implements the MicroProfile REST Client specification API
+
+
+Quarkus team uses RESTEasy framework for building MicroService's REST API Design
+
+<dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy</artifactId>
+</dependency>
+
+How to start designing REST API?
+
+The key abstraction of information in REST is a resource.
+
+What is Resource?
+
+Any information that can be named can be a resource:
+ a document or image, a temporal service (e.g. "today's weather in Los Angeles"), a collection of other resources, a non-virtual object (e.g. a person), and so on. In other words, any concept that might be the target of an author's hypertext reference must fit within the definition of a resource.
+ A resource is a conceptual mapping to a set of entities, not the entity that corresponds to the mapping at any particular point in time.
+
+ "Resource could be any thing but that should be relavent to the problem domain"
+
+What to represent Resource in Program?
+
+ Resource is presented by "class" during compile time and Object during runtime.
+
+Every Resource is Object, Since it is object which has "api"(methods).
+
+Every method will do some action.
+
+Action could be "reterival,add,update,delete"
+
+Every action is controlled by remote software/user through some rules called protocal(http).
+
+Every Action is mapped with Protocal methods -  GET,PUT,DELETE,UPDATE
+
+Sample Resource;
+
+According to JAX-RS spec
+
+Resource should
+
+  DomainNameResource
+
+class UserResource {
+   
+   //apis
+   public Response fetch(){
+
+   }
+   public Response save(User user){}
+  ....
+}
+
+Resource Identifiers:
+   Each resource must be identified by end users/programs via  URL pattern.
+
+/api/resource
+
+JAX-RS(RESTEasy) uses annotation in order to convert normal class into Resource class
+
+Note:
+ URL must be unique in the system
+ If the same url is duplicated, the system will return response which url is matched that data will be returned.
+package org.ibm.resource;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+//HTTP://localhost:8080/api/
+@Path("/api")
+public class WelcomeResource {
+
+    //api
+    @GET
+    @Path("/welcome")
+    public String sayWelcome() {
+        return "Welcome to Quarkus REST";
+    }
+}
+
+HTTP methods:
+
+CURD API
+GET
+POST
+PUT
+DELETE
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.*;
+
+@Path("/api/users")
+public class UserResource {
+
+    //return default users
+    @GET
+    public String list() {
+        return "Users List";
+    }
+
+    //POST
+    @POST
+    public String save() {
+        return "User Saved";
+    }
+
+    //PUT
+    @PUT
+    public String update() {
+        return "User updated";
+    }
+
+    @DELETE
+    //Delete Resource
+    public String delete() {
+        return "User deleted";
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////
+			 URL Design - Path identifier
+..................................................................................
+
+Path:
+ unique identifier.
+
+Path is String value
+Path can even be regular expressions
+  
+Path could root path and sub path.
+
+@Path
+class Resource {
+
+ //sub path
+  @Path
+  public String method(){}
+
+}
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.*;
+
+@Path("/api/users")
+public class UserResource {
+
+    //return default users
+    @GET
+    public String list() {
+        return "Users List";
+    }
+
+    //Path design
+    @Path("/something")
+    @GET
+    public String something() {
+        return "Something";
+    }
+    //regular expressions:  mini language for pattern matching
+    //syntax :"{variable-Name[":" regularexpression]}"
+
+    //api/users/bar
+    //api/users/foo/bar
+    //api/users/me/you/bar
+    @Path("{foo:.*}/bar")
+    @GET
+    public String getInfo(){
+       return "Info";
+    }
+    //dynamic pattern "{[]*}"
+
+    //api/users/foo/stuff
+    //api/users/bar/stuff
+    @Path("/{variable}/stuff")
+    @GET
+    public String getInformation(){
+        return  "Information";
+    }
+
+    //POST
+    @POST
+    public String save() {
+        return "User Saved";
+    }
+
+    //PUT
+    @PUT
+    public String update() {
+        return "User updated";
+    }
+
+    @DELETE
+    //Delete Resource
+    public String delete() {
+        return "User deleted";
+    }
+}
+...........................................................................................
+				JAX-RS Parameters -RESOURCE Parameters
+.....................................................................................
+
+Parameter means the value passed from the caller(Program who is passing value) to callee (Program who is receving value).
+
+eg:
+ class UserService{
+   public void save(User user){}
+ }
+
+UserService userService=new UserService()
+userService.save(new User()) //passing parameter
+
+1.@PathParam 
+  Extracts the value of a URI template parameter.
+@MatrixParam 
+   Extracts the value of a URI matrix parameter.
+@QueryParam 
+  Extracts the value of a URI query parameter.
+@CookieParam
+  Extracts the value of a cookie.
+@HeaderParam
+  Extracts the value of a header.
+@Context
+  Injects an instance of a supported resource
+	
+
+Path Parameter is parameter used to map a variable with URI Path fragments into method calls
+
+eg:
+  /api/users - list all users
+  /api/users/1 - list users by id
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+@Path("/api/products")
+public class ProductResource {
+
+    @GET
+    public String list() {
+        return "products";
+    }
+
+
+    /**
+     * //How to read Id inside Api -  @PathParam
+     * Generally clients sends strings , RESTeasy converts automatically into Integer
+     * Even we can map other objects
+     */
+    @GET
+    @Path("/{id}")
+    public String listById(@PathParam("id") Integer id) {
+        return "Products By Id" + id;
+    }
+
+    @Path("/category/{category}")
+    @GET
+    public String listByCategory(@PathParam("category") Category category) {
+        return "Category" + category;
+    }
+
+    //rating
+    @GET
+    @Path("/{name}/{rating}")
+    public String getRating(@PathParam("name") String name, @PathParam("rating") String rating) {
+        return name + " " + rating;
+    }
+
+
+}
+..................................................................................
+
+Matrix Parameter:
+ /library/books - all books
+ /library/book;name=Quarkus in Action;author=Bill  => matrix parameter
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.MatrixParam;
+import javax.ws.rs.Path;
+
+@Path("/library")
+public class MatrixResource {
+    //http://localhost:8080/library/books;name=QuarkusInACtion;author=Bill    @GET
+    @Path("/books")
+    public String getBookDetails(@MatrixParam("name") String name, @MatrixParam("author") String title) {
+        return name + " " + title;
+    }
+}
+////////////////////////////////////////////////////////////////////////////////////
+				Query Parameter
+
+
+GET /books?num=5
+
+@QueryParam("num") int num
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
+
+@Path("/query")
+public class QueryResource {
+
+    //http://localhost:8080/query/books?copies=30&price=1200
+    //no
+    @Path("/books")
+    @GET
+    public String getBooks(@QueryParam("copies") int copies,@QueryParam("price") double price) {
+        return copies + "Books " + " " + price;
+    }
+}
+.....................................................................................				   HTTP Protocal Parameter
+
+@HeaderParam
+  Extracts the value of a header.
+  Read HTTP request Header values
+ content-type,auth,
+@CookieParam
+  Extracts the value of a cookie.
+
+package org.ibm.resource.api;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.Path;
+
+@Path("/httpheader")
+public class HTTPHeaderResource {
+
+    //
+    @GET
+    public String getHeader(@HeaderParam("User-Agent") String userAgent) {
+        return userAgent;
+    }
+}
+.....................................................................................
+			 @Context - Parameter  to read (env information)
+
+ package org.ibm.resource.api;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
+
+@Path("/api/containerinfo")
+public class ContextResource {
+
+    @GET()
+    @Path("/urls")
+    public String getUriInfo(@Context UriInfo uriInfo) {
+        System.out.println(uriInfo.getAbsolutePath() + " " + uriInfo.getRequestUri());
+        return uriInfo.getAbsolutePath() + " " +uriInfo.getRequestUri();
+    }
+
+    @GET()
+    @Path("/headers")
+    public String getHeaders(@Context HttpHeaders headers) {
+        System.out.println(headers.getRequestHeaders());
+        return headers.getRequestHeaders().toString();
+    }
+}
+.............................................................................................
+				  DefaultValues for Path
+
+if you dont pass Query parameters ,the default values can be assigned.
+
+//localhost:8080/api/myproducts/filter => output phone
+//localhost:8080/api/myproducts/filter?category=books => output books
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("/filter")
+    public String filterProductByCategoriees(@QueryParam("category") @DefaultValue("phone") String  category) {
+        System.out.println("");
+        return category;
+    }
+.....................................................................................
+				Response
+
+REST Representations:
+   How response to be represented by Resource to the User
+
+In tradtional webservice, the result would be always XML - SOAP Based webservice.
+In RESTfull webservice the result would be any thing , if user and server agrees upon
+ - JSON Format - most popular data format
+
+What can be Response?
+ String- plain/text
+ Json-
+ XML
+.....................................................................................
+
+Responses and rest api principles
+Service layer
+Dependency Injection
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
