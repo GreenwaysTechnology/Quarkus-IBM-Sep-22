@@ -32,7 +32,7 @@ We can Design REST API/Web in 2 styles
 2.REST API using Reactive Programming with NonBlocking/Async
 
 ....................................................................................
-				REST API Desing in JEE(MicroProfile)
+				REST API Design in JEE(MicroProfile)
 
 Java API for RESTful Web Services (JAX-RS) Specification:
  Using this specifcation we design Rest api.
@@ -451,6 +451,867 @@ What can be Response?
 Responses and rest api principles
 Service layer
 Dependency Injection
+
+
+JAX-RS api can return any of one the type
+ - String  - plain/text
+ - Objects - application/json -  XML
+ - Void    - no return type -  only status
+ - Response - Response Object 
+
+package com.ibm.rs.response.type;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/api/books")
+public class BookResource {
+
+    //String
+    @GET
+    @Path("/list")
+    @Produces(MediaType.TEXT_PLAIN) // the type of data format
+    public String getBook() {
+        return "Book";
+    }
+
+    @GET
+    @Path("/show")
+    //No Content is returned -204- HTTP
+    public void showBook() {
+        System.out.println("show Book");
+    }
+
+    @GET
+    @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Book listBook() {
+        //return book
+        return new Book("894343434", "Quarkus in Action", "Subramanian");
+    }
+}
+
+Book.java
+package com.ibm.rs.response.type;
+
+public class Book {
+    private String ISBN;
+    private String name;
+    private String author;
+
+    public Book() {
+    }
+
+    public Book(String ISBN, String name, String author) {
+        this.ISBN = ISBN;
+        this.name = name;
+        this.author = author;
+    }
+
+    public String getISBN() {
+        return ISBN;
+    }
+
+    public void setISBN(String ISBN) {
+        this.ISBN = ISBN;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+}
+
+
+After Sending request, you will get error
+
+Could not find MessageBodyWriter for response object of type: com.ibm.rs.response.type.Book of media type:
+application/json
+
+org.jboss.resteasy.core.NoMessageBodyWriterFoundFailure: Could not find MessageBodyWriter for
+ response object of type: com.ibm.rs.response.type.Book of media type: application/json
+
+The Quarkus runtime not able to convert Book object into json 
+
+JSON is nothing but text representation of "Object". -
+
+You need to convert Java object to "String"
+
+in order to convert we need special lib.
+....................................................................................	
+			     Extensions				
+
+What is extension?
+
+  extension is, project dependency - jar dependency.
+
+By default , you can have extensions when create new project.
+
+Think of Quarkus extensions as your project dependencies.
+
+Extensions configure, boot and integrate a framework or technology into your Quarkus application. 
+
+They also do all of the heavy lifting of providing the right information to GraalVM for your application to compile natively.
+
+How to manage extensions(dependency)?
+
+managment means - add,removing,listing extensions
+
+there are two ways
+
+1.via maven or gradle 
+2.via cli - quarkus
+
+E:\session\IBM\2022\march\quarkus\code-with-quarkus>quarkus  ext ls
+Current Quarkus extensions installed:
+
+? ArtifactId                                         Extension Name
+? quarkus-resteasy                                   RESTEasy JAX-RS
+? quarkus-resteasy-jackson                           RESTEasy Jackson
+
+
+E:\session\IBM\2022\march\quarkus\code-with-quarkus>quarkus  ext rm resteasy-jackson
+[SUCCESS] Extension io.quarkus:quarkus-resteasy-jackson has been uninstalled
+
+How to send JSON Payload as Response?
+
+Quarks cant convert any object into JSON by default with help of "RestEasy" extension
+
+Add resteasy-jackson
+
+E:\session\IBM\2022\march\quarkus\code-with-quarkus>quarkus  ext add resteasy-jackson
+[SUCCESS] Extension io.quarkus:quarkus-resteasy-jackson has been installed
+
+Limitions of Object as Response
+
+-if you want to customize the Response we cant,for eg if you want to add some custom headers
+like tokens,urls,resourceinformation.
+
+Reponse Object
+
+Response;
+
+ Object used to send "payload-data" along with meta data (http code,otherinformation)
+
+HTTP Status codes:
+
+-> informational response - 100 to 199-1X
+-> success response -  200-299-2X
+-> Redirects  - 300-399 -3X
+-> client errors - 400-499 -4X
+-> server errrors - 500-599 - 5X
+
+Response:
+
+Response class is abstract class contains two category of api
+
+public abstract Object getEntity();
+public abstract int getStatus();
+
+
+Builder Class:
+
+public static ResponseBuilder status(int status)
+public static ResponseBuilder ok()
+public static ResponseBuilder ok(Object entity)
+public static ResponseBuilder created()
+public static ResponseBuilder accepted()
+public static ResponseBuilder noContent()
+
+Response class has been desinged with "Builder" /Command Chain Pattern
+
+package com.ibm.rs.response.type;
+
+import javax.validation.constraints.Max;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.List;
+
+@Path("/api/books")
+public class BookResource {
+
+    //String
+    @GET
+    @Path("/book")
+    @Produces(MediaType.TEXT_PLAIN) // the type of data format
+    public String getBook() {
+        return "Book"; //application/oct-type
+    }
+
+    @GET
+    @Path("/show")
+    //No Content is returned -204- HTTP
+    public void showBook() {
+        System.out.println("show Book");
+    }
+
+    @GET
+    @Path("/")
+//    @Produces(MediaType.APPLICATION_JSON) //Not needed
+    public Book getBookEntity() {
+        //return book - Default Format - JSON
+        return new Book("894343434", "Quarkus in Action", "Subramanian");
+    }
+
+    @GET
+    @Path("/list")
+    //@Produces(MediaType.APPLICATION_JSON)
+    public List<Book> listBooks() {
+        //return book
+        return List.of(
+                new Book("894343434", "Quarkus in Action", "Subramanian"),
+                new Book("894343434", "Quarkus in Action", "Subramanian"),
+                new Book("894343434", "Quarkus in Action", "Subramanian")
+        );
+    }
+    //Response Object : Is used to send extra information(header,status code)
+
+    @Path("/bookresponse")
+    @GET
+    public Response getBookResponse() {
+        Book book = new Book("894343434", "Quarkus in Action", "Subramanian");
+        //Response includes - data ,status code
+        return Response
+                .status(Response.Status.OK)
+                .entity(List.of(book))
+                .header("myheader", "bar")
+                .build();
+    }
+   
+
+}
+.....................................................................................
+			   Sending data from client to Server
+.....................................................................................
+
+Ways to send data from client to server
+
+1.Via Request Headers				
+2.Via Parameters
+    ->Path parameter  /api/products/10
+    ->Query Parameter /api/products?filter=asc
+    ->Matrix Parameter /api/products/name=abc;price=100
+3.via Payload
+   In http protocal, there is section called payload(body of the Protocal)
+    ->The type of data could be json,xml,binary(images,videos,docs)
+
+In order to inform the Server that what type of payload we are sending....are indefined by server via @Consumes
+
+@Produces - output
+@Consumes - Input
+
+eg:
+Client - Postman
+POST /api/books/save
+
+{
+    "name": "Quarkus in Action",
+    "author": "Subramanian",
+    "isbn": "894343434"
+}
+    //save
+    @POST
+    @Path("/save")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response saveBook(Book book) {
+        System.out.println(book);
+        //UriBuilder.fromResource(BookResource.class).build() this code will inject Location header
+        //Location : http://localhost:8080/api/books
+        //created -201
+        return Response.created(UriBuilder.fromResource(BookResource.class).build()).build();
+    }
+
+................................................................................................				Status Codes And RestFul Api Design
+..............................................................................................
+Status Code : 100 to 500
+
+1XX Information Responses
+
+100 Continue
+101 Switching Protocols
+102 Processing
+103 Early Hints
+
+2XX Success
+
+200 OK
+201 Created
+202 Accepted
+203 Non-Authoritative Information
+204 No Content
+205 Reset Content
+206 Partial Content
+207 Multi-Status
+208 Already Reported
+226 IM Used
+
+3XX Redirection
+300 Multiple Choices
+301 Moved Permanently
+302 Found
+303 See Other
+304 Not Modified
+305 Use Proxy
+306 Switch Proxy
+307 Temporary Redirect
+308 Permanent Redirect
+
+4XX Client errors
+
+400 Bad Request
+401 Unauthorized
+402 Payment Required
+403 Forbidden
+404 Not Found
+405 Method Not Allowed
+406 Not Acceptable
+407 Proxy Authentication Required
+408 Request Timeout
+409 Conflict
+410 Gone
+411 Length Required
+412 Precondition Failed
+413 Payload Too Large
+414 URI Too Long
+415 Unsupported Media Type
+416 Range Not Satisfiable
+417 Expectation Failed
+418 I'm a teapot
+420 Method Failure
+421 Misdirected Request
+422 Unprocessable Entity
+423 Locked
+424 Failed Dependency
+426 Upgrade Required
+428 Precondition Required
+429 Too Many Requests
+431 Request Header Fields Too Large
+451 Unavailable For Legal Reasons
+
+5XX Server errors
+500 Internal Server error
+501 Not Implemented
+502 Bad Gateway
+503 Service Unavailable
+504 gateway Timeout
+505 Http version not supported
+506 Varient Also negotiate
+507 Insufficient Storage
+508 Loop Detected
+510 Not Extended
+511 Network Authentication Required
+
+Negotiation is bi directional.
+
+Client ask with help of "Accept -*" Headers, Server will respond with "Content-*" Headers
+
+package com.ibm.rs.negotiation;
+
+
+import com.ibm.rs.User;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/negotiation")
+public class ContentNegotiationResource {
+    @GET
+    @Path("/content")
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public Response negotiateContent() {
+        User user = new User(1, "admin");
+        return Response.ok(user).build();
+    }
+}
+
+
+http://localhost:8080/negotiation/content
+
+Could not find MessageBodyWriter for response object of type: com.ibm.rs.User of media type:
+application/xml;charset=UTF-8
+
+
+Steps:
+1.Add new Dependency /extension
+
+
+quarkus  ext add resteasy-jaxb
+ <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jaxb</artifactId>
+</dependency>
+
+2.We have to add @XmlRootElement
+
+package com.ibm.rs;
+
+import javax.xml.bind.annotation.XmlRootElement;
+
+//Entity
+@XmlRootElement
+public class User {
+    private  int userId;
+    private  String userName;
+
+    public User() {
+    }
+
+    public User(int userId, String userName) {
+        this.userId = userId;
+        this.userName = userName;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+}
+
+3.REST api which supports multi format
+package com.ibm.rs.negotiation;
+
+
+import com.ibm.rs.User;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/negotiation")
+public class ContentNegotiationResource {
+    @GET
+    @Path("/content")
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public Response negotiateContent() {
+        User user = new User(1, "admin");
+        return Response.ok(user).build();
+    }
+}
+
+3.How to test api with multi format 
+
+open postman or any http client.
+
+send request
+
+URL -http:localhost:8080/negotiation/content
+Method - GET
+Client/Request HTTP Headers: Accept : application/json or Accept : application/xml
+
+Response :
+Request : Accept:application/json
+Status : 200 OK
+{
+    "userId": 1,
+    "userName": "admin"
+}
+
+Request : Accept: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<user>
+    <userId>1</userId>
+    <userName>admin</userName>
+</user>
+
+Request: Accept :application/atom+xml
+
+Response would be 
+406 Not Acceptable
+The server not able to send response what client is looking for.
+
+Client uses Accept-* header
+
+Server uses Content-* header
+..............................................................................................
+				 When Client Sends Data to Server
+..............................................................................................
+
+Client is sending data in the form of json / xml or any format, server should able to process that.
+content-type and annotation
+
+  @Consumes - It defines the server acceptable content.
+    @POST
+    @Path("/create")
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public Response create(User user) {
+        System.out.println("User " + user);
+        return Response.status(201).entity("Created").build();
+    }
+.....................................................................................
+			    Language Negotation
+.....................................................................................
+
+How Quarkus can give data in various data language formats. - Internatlazation and locationazation.
+
+package com.ibm.rs.negotiation;
+
+
+import com.ibm.rs.User;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
+import java.util.List;
+import java.util.Locale;
+
+@Path("/negotiation")
+public class ContentNegotiationResource {
+    //language
+    // GET /negotiation/lang
+    //Accept-language : en
+
+    @Path("/lang")
+    @GET
+    public Response getLang(@Context Request request) {
+
+        List<Variant> variants = Variant.VariantListBuilder
+                .newInstance()
+                .languages(Locale.ENGLISH, Locale.GERMAN)
+                .build();
+
+
+        Variant variant = request.selectVariant(variants);
+
+        if (variant == null) {
+            return Response.notAcceptable(variants).build();
+        }
+        String language = variant.getLanguageString();
+        return Response.ok(language)
+                .header(HttpHeaders.CONTENT_LANGUAGE, language)
+                .build();
+    }
+}
+
+Request
+
+Request:
+
+GET    /localhost:8080/negotiation/lang
+Accept-language :en    or de
+
+Response:
+content-language : en
+
+.........
+..............................................................................................				HTTP encoding
+.............................................................................................
+
+What is Content Encoding?
+
+ if Server sends data, it can send directly
+
+Compression Algorthim:
+
+1.gzip
+2.deflate
+
+How to enable compression algorithm in quarkus?
+
+By default Quarkus web container does not enable compression feature, we need to enable it.
+
+application.properties file
+  You can configure global setting for application.
+quarkus.http.enable-compression=true
+quarkus.resteasy.gzip.enabled=true
+quarkus.resteasy.gzip.max-input=10M
+
+
+package com.ibm.rs.negotiation;
+
+
+import com.ibm.rs.User;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/negotiation")
+public class ContentNegotiationResource {
+    @GET
+    @Path("/content")
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    public Response negotiateContent() {
+        User user = new User(1, "admin");
+        return Response.ok(user).build();
+    }
+
+        @POST
+        @Path("/create")
+        @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+        public Response create(User user) {
+            System.out.println("User " + user);
+            return Response.status(201).entity("Created").build();
+        }
+}
+
+
+Request:
+
+GET    /localhost:8080/negotiation/content
+Accept-Encoding :gzip
+
+Response:
+content-encoding :gzip
+content-length:54
+.....................................................................................
+
+package com.ibm.rs.resoucelocators;
+
+import javax.ws.rs.Path;
+
+@Path("/api/ibm")
+public class Application {
+
+    //payment
+    @Path("/payments")
+    public PaymentResource getPaymentResource() {
+        return new PaymentResource();
+    }
+    //Services
+    @Path("/products")
+    public ProductService getProductService(){
+        return new ProductService();
+    }
+}
+
+
+package com.ibm.rs.resoucelocators;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+public class ProductService {
+    @GET
+    public String getPayments() {
+        return "Service  resource";
+    }
+    @GET
+    @Path("{id}")
+    public String getPaymentById(@PathParam("id") String id) {
+        return "Services resource by id" + id;
+    }
+}
+package com.ibm.rs.resoucelocators;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+public class PaymentResource {
+    @GET
+    public String getPayments() {
+        return "Payment resource";
+    }
+    @GET
+    @Path("{id}")
+    public String getPaymentById(@PathParam("id") String id) {
+        return "Payments resource by id" + id;
+    }
+}
+.....................................................................................
+			 What can be Response
+
+
+Response Types:
+
+1.SUCCESS Response
+2.ERROR Response
+
+How to handle / Convert ERRORS/Exceptions into HTTP Response Object?
+
+ public Response getResponse(){
+
+     return Response.ok().build();
+ }
+
+According to Application, Exception can be
+
+1.System Exception :
+  Exception thrown by jvm - NumberFormat,NullPointerException,ClassCastException.
+
+2.Application Exception
+   
+  UserNotFoundException
+  PasswordMissMatchException
+  ...
+public boolean validate(){
+
+  if(passwordmatch){
+
+
+  }
+  else{ 
+       throw new PasswordMismatchException("password does not match");
+  } 
+}
+JAX-RS also provides the javax.ws.rs.WebApplicationException. 
+This can be thrown by application code and automatically processed by JAX-RS without
+having to write an explicit mapper.
+
+WebApplicationException can be converted into Response Object.
+
+Thrown exceptions are handled by the JAX-RS runtime if you have registered an exception mapper. 
+
+Exception mappers can convert an exception to an HTTP response. 
+
+If the thrown exception is not handledby a mapper, it is propagated and handled by the container (i.e., servlet) JAX-RS is running within.
+package com.ibm.rs.exceptionhandling;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+
+@Path("/myerrros")
+public class ErrorResource {
+    @GET
+    @Path("{id}")
+    public Response getResponse(@PathParam("id") String id) {
+        if (id.equals("100")) {
+            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        }
+        return Response.ok("Sucess" + id).build();
+    }
+}
+
+if you run this code with  
+
+GET  /localhost:8080/myerrors/100
+2022-04-04 11:47:02,439 ERROR [org.jbo.res.res.i18n] (executor-thread-0) RESTEASY002010: Failed to execute: javax.ws.rs.WebApplicationException: HTTP 404 Not Found
+        at com.ibm.rs.exceptionhandling.ErrorResource.getResponse(ErrorResource.java:15)
+        at com.ibm.rs.exceptionhandling.ErrorResource_Subclass.getResponse$$superforward1(Unknown Source)
+        at com.ibm.rs.exceptionhandling.ErrorResource_Subclass$$function$$1.apply(Unknown Source)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.proceed(AroundInvokeInvocationContext.java:54)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.proceed(InvocationInterceptor.java:62)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.monitor(InvocationInterceptor.java:49)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor_Bean.intercept(Unknown Source)
+        at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:41)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:41)
+        at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:32)
+        at com.ibm.rs.exceptionhandling.ErrorResource_Subclass.getResponse(Unknown Source)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+        at org.jboss.resteasy.core.MethodInjectorImpl.invoke(MethodInjectorImpl.java:170)
+        at org.jboss.resteasy.core.MethodInjectorImpl.invoke(MethodInjectorImpl.java:130)
+        at org.jboss.resteasy.core.ResourceMethodInvoker.internalInvokeOnTarget(ResourceMethodInvoker.java:660)
+        at org.jboss.resteasy.core.ResourceMethodInvoker.invokeOnTargetAfterFilter(ResourceMethodInvoker.java:524)
+        at org.jboss.resteasy.core.ResourceMethodInvoker.lambda$invokeOnTarget$2(ResourceMethodInvoker.java:474)
+        at org.jboss.resteasy.core.interception.jaxrs.PreMatchContainerRequestContext.filter(PreMatchContainerRequestContext.java:364)
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+The above error we need to handle by converting into response.
+
+In order to convert Exception into Proper Response, JAX-RS provides , Mapper class.
+
+Mapper class will convert any expception into Success like Response, so that it wont throw any Errors.
+
+Exception Mapper class:
+
+Steps:
+
+1.You have to declare Mapper class
+
+2.You have to annotate with @Provider Annotation.
+
+@Provider
+public class WebApplicationMapper {
+}
+
+3.You have to extends ExceptionMapper<ExceptionType>
+
+
+package com.ibm.rs.exceptionhandling;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+//
+//class CustomerIdNotFoundException extends RuntimeException {
+//     public CustomerIdNotFoundException(){
+//            super();
+//     }
+//    public CustomerIdNotFoundException(String message){
+//        super(message);
+//    }
+//}
+//
+//@Provider
+//class CustomerExceptionMapper implements ExceptionMapper<CustomerIdNotFoundException> {
+//    @Override
+//    public Response toResponse(CustomerIdNotFoundException e) {
+//        return null;
+//    }
+//}
+
+@Provider
+public class WebApplicationMapper implements ExceptionMapper<WebApplicationException> {
+    @Override
+    public Response toResponse(WebApplicationException e) {
+        // return Response.noContent().build();
+        return Response.status(404)
+                .entity(e.getMessage())
+                .header("err", e.getResponse()
+                        .getStatus()).build();
+    }
+}
+......................................................................................
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
