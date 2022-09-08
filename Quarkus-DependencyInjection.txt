@@ -174,35 +174,608 @@ public class GreetingResource {
         return this.greetingService.sayHello();
     }
 }
- You have to build book Resource
-
-/api/books
-=>FindAll books
-=>findBook by isbn, author
-=>filter books by category and language - userinterface,microservices
-=>save new book 
-=>remove existing book - by isbn
-=>update book information
-
-Model : isbn,author,title,publisher,dateofpublishing,edition
-
-Database: in memory datastructure -  List or Set or Map - Findout approiate collection
-
-New Features to be added:
-
-->Resource Locators  
-->The api should return data in two formats - XML and JSON -negoation
-->Exception Handling
-   ->Suppose if give bookid not available
-  Add : Resouce Specific Exception class 
-        Global Exceptions
-->Add BookService Layer , keep all book apis,From Rest api you have to call service methods
-  Use DI
+.....................................................................................	     			Types of Injection in Quarkus  -Inection Points
 
 
+1.Setter Injection
+2.Field Injection
+3.Constructor injection
+
+
+User Entity:
+package com.ibm.model;
+
+public class User {
+    private int id;
+    private String userName;
+    private String userCity;
+
+    public User() {
+    }
+
+    public User(int id, String userName, String userCity) {
+        this.id = id;
+        this.userName = userName;
+        this.userCity = userCity;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserCity() {
+        return userCity;
+    }
+
+    public void setUserCity(String userCity) {
+        this.userCity = userCity;
+    }
+}
+
+UserService
+package com.ibm.service;
+
+import com.ibm.model.User;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.List;
+
+@ApplicationScoped
+public class UserService {
+
+    public List<User> list() {
+        return List.of(new User(1, "Subramanian", "Coimbatore"));
+    }
+}
+
+UserResource
+package com.ibm.resource;
+
+import com.ibm.service.UserService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/users")
+public class UserResource {
+
+    private UserService userService;
+
+    //setter injection
+    @Inject
+    public void setUserService(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GET
+    public Response list() {
+        return Response.ok(userService.list()).build();
+    }
+}
+.....................................................................................
+				Field Injection
+
+
+Annotating/Decorating on the top of field:
+package com.ibm.resource;
+
+import com.ibm.service.UserService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/users")
+public class UserResource {
+
+//    @Inject
+//    private UserService userService;
+    //private keyword is not necessary in CDI
+
+    @Inject
+    UserService userService;
+
+    //setter injection
+//    @Inject
+//    public void setUserService(UserService userService) {
+//        this.userService = userService;
+//    }
+
+    @GET
+    public Response list() {
+        return Response.ok(userService.list()).build();
+    }
+}
+
+Points:
+1.we dont need to use "private" keyword.
+.....................................................................................
+			Constructor Injections
+.....................................................................................
+
+Dependencies are injected on the top of constructors
+package com.ibm.resource;
+
+import com.ibm.service.UserService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/users")
+public class UserResource {
+
+    UserService userService;
+
+    public UserResource() {
+    }
+
+    @Inject
+    public UserResource(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GET
+    public Response list() {
+        return Response.ok(userService.list()).build();
+    }
+}
+....................................................................................
+			Injecting multiple Depedencies
+....................................................................................
+
+package com.ibm.resource;
+
+import com.ibm.service.ReviewService;
+import com.ibm.service.UserService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/users")
+public class UserResource {
+
+//    @Inject
+//    private UserService userService;
+    //private keyword is not necessary in CDI
+
+//    @Inject
+//    UserService userService;
+
+    //setter injection
+//    @Inject
+//    public void setUserService(UserService userService) {
+//        this.userService = userService;
+//    }
+
+    @Inject
+    UserService userService;
+    @Inject
+    ReviewService reviewService;
+
+//    public UserResource() {
+//    }
+//
+//    @Inject
+//    public UserResource(UserService userService) {
+//        this.userService = userService;
+//    }
+
+    @GET
+    public Response list() {
+        return Response.ok(userService.list()).build();
+    }
+
+    @GET
+    @Path("/reviews")
+    public Response getReviews() {
+        return Response.ok(reviewService.getReviews()).build();
+    }
+}
+..
+package com.ibm.service;
+
+import com.ibm.model.Review;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.List;
+
+@ApplicationScoped
+public class ReviewService {
+
+    public List<Review> getReviews(){
+        return List.of(new Review(1,"This is elegant product","John"));
+    }
+}
+package com.ibm.model;
+
+public class Review {
+    private int id;
+    private String comments;
+    private String by;
+
+    public Review() {
+    }
+
+    public Review(int id, String comments, String by) {
+        this.id = id;
+        this.comments = comments;
+        this.by = by;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public String getBy() {
+        return by;
+    }
+
+    public void setBy(String by) {
+        this.by = by;
+    }
+}
+................................................................................
+			 Interface based Dependency
+
+
+One Interface multiple implementations.
+
+eg:
+
+1.interface
+
+package com.ibm.service.interfaces;
+
+public interface NumberGenerator {
+    //Generate ISBN Number
+    String generateNumber();
+}
+
+2.Implementation
+package com.ibm.service.interfaces;
+
+import javax.enterprise.context.ApplicationScoped;
+import java.util.Random;
+
+@ApplicationScoped
+public class IsbnGenerator implements NumberGenerator {
+    @Override
+    public String generateNumber() {
+        return "15-87654" + Math.abs(new Random().nextInt());
+    }
+}
+3.Service 
+package com.ibm.service.interfaces;
+
+import com.ibm.model.Book;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+
+@ApplicationScoped
+public class BookService {
+    //Interface injection
+    @Inject
+    NumberGenerator numberGenerator;
+
+    //biz method
+    public Book createBook() {
+        Book book = new Book("Quarks In Action", 1000f, "Subramanian");
+        book.setIsbn(numberGenerator.generateNumber());
+        return book;
+    }
+}
+4.Resource
+package com.ibm.resource;
+
+
+import com.ibm.service.interfaces.BookService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/book")
+public class BookResource {
+    @Inject
+    BookService bookService;
+
+    @GET
+    public Response createBook(){
+        return Response.ok(bookService.createBook()).build();
+    }
+}
+.....................................................................................
+			   Interface DI with Mulitiple Implementations
+....................................................................................
+
+Using Qualifiers:
+.................
+
+Steps:1
+Interface:
+package com.ibm.service.interfaces;
+
+
+public interface Greeter {
+    String sayGreet();
+}
+
+Step 2: 
+Qualifiers- Using Custom Annotations
+package com.ibm.qualifiers;
+
+import javax.inject.Qualifier;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Qualifier
+@Retention(RUNTIME)
+@Target({FIELD,TYPE,METHOD})
+public @interface HaiQualifier {
+}
+
+package com.ibm.qualifiers;
+
+import javax.inject.Qualifier;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.*;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Qualifier
+@Retention(RUNTIME)
+@Target({FIELD, TYPE, METHOD})
+public @interface HelloQualifier {
+}
 
 
 
+Step 3:
+Implementations:
+package com.ibm.service.interfaces;
+
+import com.ibm.qualifiers.HelloQualifier;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+@HelloQualifier
+public class Hello implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Hello";
+    }
+}
+package com.ibm.service.interfaces;
+
+import com.ibm.qualifiers.HaiQualifier;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+@HaiQualifier
+public class Hai implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Hai";
+    }
+}
+
+Step 4 : DI:
+package com.ibm.resource;
+
+import com.ibm.qualifiers.HaiQualifier;
+import com.ibm.qualifiers.HelloQualifier;
+import com.ibm.service.GreetingService;
+import com.ibm.service.interfaces.Greeter;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/greet")
+public class GreetingResource {
+
+    @Inject
+    @HelloQualifier
+    Greeter hellogreet;
+
+    @Inject
+    @HaiQualifier
+    Greeter haiGreet;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        //return this.greetingService.sayHello();
+        return hellogreet.sayGreet();
+    }
+
+    @GET
+    @Path("/hai")
+    public String hai() {
+        //return this.greetingService.sayHello();
+        return haiGreet.sayGreet();
+    }
+}
+........................
+..............................................................................................
+			Types of beans with respect to data injection
+..............................................................................................
+
+1.class beans
+  ...variables and methods itself can be treated as dependency
+2.Producer methods
+3.Producer fields
+.....................
+4.Syntenetics beans
+
+
+1.class Bean:
+  Bean is created out class.
+
+@ApplicationScoped
+public class BookService {} 
+
+@Inject
+BookService bookService
+
+2.Producer fields  && Producer methods
+   We can inject any instance variable and methods as dependency.
+
+
+Step: 1 : declare primitives and any instance variable,instance methods
+package com.ibm.di.producers;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+import java.util.ArrayList;
+import java.util.List;
+
+@ApplicationScoped
+public class Producers {
+    //instance variable ; going to be as dependency to some other classes
+    @Produces
+    double price = 1000.00;
+
+    //instance method ; going to be as dependency to some other class
+    @Produces
+    List<String> topics() {
+        List<String> topics = new ArrayList<>();
+        topics.add("cdi");
+        topics.add("configuration");
+        topics.add("RestEasy");
+        return topics;
+    }
+}
+
+Producer Resource:
+package com.ibm.di.producers;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+import java.util.List;
+
+@Path("/producer")
+public class ProducersResource {
+    //Producer fields injection
+    @Inject
+    double price;
+    //method injection
+    @Inject
+    List<String> topics;
+
+    @GET
+    @Path("/price")
+    public Response getPrice() {
+        return Response.ok().entity(price).build();
+    }
+
+    @GET
+    @Path("/topics")
+    public Response getTopics() {
+        return Response.ok().entity(topics).build();
+    }
+}
+...................................................................................
+				Bean Life Cycle Apis
+package com.ibm.di.lifecycles;
+
+import com.ibm.model.Book;
+import com.ibm.service.interfaces.NumberGenerator;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@ApplicationScoped
+public class BookService {
+
+    //Inject interface
+    @Inject
+    NumberGenerator numberGenerator;
+
+    @PostConstruct
+    public void init(){
+        System.out.println("INIT");
+    }
+    @PreDestroy
+    public void destroy(){
+        System.out.println("Destroy");
+    }
+
+    //biz method
+    public Book createBook() {
+        Book book = new Book("Quarks In Action", 1000f, "Subramanian");
+        book.setIsbn(numberGenerator.generateNumber());
+        return book;
+    }
+}
+package com.ibm.di.lifecycles;
+
+import com.ibm.model.Book;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/beanlife")
+public class BookLifeCycleResource {
+
+
+    @Inject
+    BookService bookService;
+
+    @GET
+    public Book getBook() {
+        return bookService.createBook();
+    }
+}
+
+	
 
 
 

@@ -2,8 +2,14 @@ package com.ibm.service;
 
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.SessionScoped;
+import javax.inject.Singleton;
 
 @ApplicationScoped
+//@Singleton
+//@RequestScoped
+//@SessionScoped
 public class GreetingService {
 
     public GreetingService() {
