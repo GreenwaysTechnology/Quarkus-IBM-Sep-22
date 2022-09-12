@@ -774,8 +774,91 @@ public class BookLifeCycleResource {
         return bookService.createBook();
     }
 }
+.....................................................................................
+	..............................................................................................
+				  Interceptors
+..............................................................................................
+    
+What is concern?
+   concern means features like transaction,security,logging
 
-	
+Cross cutting means, removing these concerns from the application logic.
+
+How to cross cutting concerns?
+ There is spec all "java interceptors" 
+
+How to define interceptor and bind with api?
+
+Step 1: 
+Define custom Annotation and annotate with @InterceptorBinding , which is going to act as bridge between "Interceptor" and Service biz logic.
+
+package com.ibm.rs.di.interceptors;
+
+import javax.interceptor.InterceptorBinding;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Inherited
+@InterceptorBinding
+@Retention(RUNTIME)
+@Target({METHOD, TYPE})
+public @interface LogEvent {
+}
+
+Step 2: define Interceptor
+
+Declare class and annotate with @Interceptor
+
+Have method and annotate with @AroundInvoke - gets called when ever biz method is called
+Bind With @LogEvent -  InterceptorBinding Annotation
+
+package com.ibm.rs.di.interceptors;
+
+import javax.interceptor.AroundInvoke;
+import javax.interceptor.Interceptor;
+import javax.interceptor.InvocationContext;
+import java.util.logging.Logger;
+
+@Interceptor
+@LogEvent
+public class BookServiceInterceptor {
+
+    private Logger logger;
+
+    @AroundInvoke
+    public Object logEvent(InvocationContext invocationContext) throws Exception {
+        logger = Logger.getLogger(invocationContext.getTarget().getClass().getName());
+        System.out.println("log.........");
+        logger.info("Method: " + invocationContext.getMethod().getName());
+        logger.info("Arguments: " + invocationContext.getParameters());
+        logger.info("Executing the called method");
+        Object possibleReturn = invocationContext.proceed();
+        logger.info("The object the method was invoked on:" + invocationContext.getTarget().getClass().getName());
+
+        return possibleReturn;
+
+    }
+}
+
+Step 3: Inside service, you have to annotate with InterceptorBindinAnnotation
+    @LogEvent
+    public Book createBook() {
+        Book book = new Book("Quarks In Action", 1000f, "Subramanian");
+        book.setIsbn(numberGenerator.generateNumber());
+        return book;
+    }
+   @GET
+    @LogEvent
+    public String sayGreet() {
+        return haigreeter.sayGreet() + " " + hellogreeter.sayGreet();
+    }
+..............................................................................................
+..............................................................................................
 
 
 
