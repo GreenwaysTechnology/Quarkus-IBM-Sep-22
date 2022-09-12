@@ -25,3 +25,39 @@ New Features to be added:
         Global Exceptions
 ->Add BookService Layer , keep all book apis,From Rest api you have to call service methods
   Use DI
+................................................................................
+
+
+Assignment -2 : 
+ You have to build book Resource
+
+/api/books
+=>FindAll books
+=>findBook by isbn, author
+=>filter books by category and language - userinterface,microservices
+=>save new book 
+=>remove existing book - by isbn
+=>update book information
+
+Model : isbn,author,title,publisher,dateofpublishing,edition
+
+Database: in memory datastructure -  List or Set or Map - Findout approiate collection
+
+Features:
+
+->Resource Locators  
+->The api should return data in two formats - XML and JSON -negoation
+->Exception Handling
+   ->Suppose if given bookid not available
+  Add : Resouce Specific Exception class 
+        Global Exceptions
+->Add BookService Layer , keep all book apis,From Rest api you have to call service methods
+  Use DI
+
+New Features to be added:
+
+1.Generate 16 digit ISBN and 32 digit ISBN code via ISBN Generator class
+2.Inject ISBNGenerator ServiceBean into BookService - Which ISBN Digit you want- DI
+3.Inject book authors and price as DI into BookService class
+4.You have to write interceptor for BookService Bean to watch the book operations 
+...................................................................................
