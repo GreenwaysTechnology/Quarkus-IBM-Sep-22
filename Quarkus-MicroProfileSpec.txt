@@ -1,4 +1,4 @@
-		 MicroProfile Config Specification
+		     MicroProfile Config Specification
 .....................................................................................
 In Micro service Applications, configurations are always critical. we have to store application configuration information within application or centerialzed way..
 
@@ -504,14 +504,139 @@ Property Expression:
  ${expression:defaultvalue}
  
 --------xxxxxx-------------------------------------------------------------------
+			 If you want to isloate the properties
+ 
+
+Resource:
+package com.ibm.quarkus.config;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/customer")
+public class CustomerResource {
+
+    //    @ConfigProperty(name = "customer.name", defaultValue = "")
+//    String name;
+    @Inject
+    CustomerConfiguration customerConfiguration;
+
+    @GET
+    public String getCustomer() {
+        //return name;
+        return customerConfiguration.name() + customerConfiguration.city();
+    }
+}
+
+CustomerConfiguration:
+package com.ibm.quarkus.config;
 
 
+import io.quarkus.arc.config.ConfigProperties;
+import io.smallrye.config.ConfigMapping;
+//import io.smallrye.config.ConfigMapping;
 
 
+@ConfigProperties(prefix = "customer")
+//@ConfigMapping(prefix = "customer")
+public interface CustomerConfiguration {
+    //the property name is method name
+    String name();
+    String city();
+    String state();
+    String zipcode();
+}
+....................................................................................
+                     
+How to configure default values in the @ConfigMapping annotation
+
+@ConfigProperties(prefix = "customer")
+public interface CustomerConfiguration {
+    //the property name is method name
+//    String name();
+//    String city();
+//    String state();
+//    String zipcode();
+}
+
+There is type provided by java " java.util.Optional<T>":
+
+Optional class helps to convert null into usefull defaults.
+
+Java has the very problem is NullPointerException.
 
 
+ eg:
+    Customer customer= service.findById(10)
+    log.info(customer.getCity());
 
+   The result would be
+   -Customer
+       or
+   -null
+if there is no customer which throws null pointer exception?
 
+How to solve this problem?
+
+Way - 1
+  if(customer!=null){ 
+     log.info(customer.getCity());
+  }else{
+
+     log.info("customer not found")
+  }
+
+Way -2
+
+     String city = service.findById(10).orElse("Default City")
+
+..........................................................................................
+application.properties
+#cust.name=Subramanian
+
+@ConfigProperties(prefix = "customer")
+public interface CustomerConfiguration {
+    Optional<String> name();
+    Optional<String> city();
+    Optional<String> state();
+    Optional<String> zipcode();
+}
+
+package com.ibm.quarkus.config;
+
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/customer")
+public class CustomerResource {
+
+    //    @ConfigProperty(name = "customer.name", defaultValue = "")
+//    String name;
+    @Inject
+    CustomerConfiguration customerConfiguration;
+
+    @GET
+    public String getCustomer() {
+        //return name;
+        return customerConfiguration.name().orElse("Default Name") + customerConfiguration.city().orElse("Default City");
+    }
+}
+.....................................................................................
+			
+				Quarkus built in properties
+
+Quarkus properties begin with "qurakus.modulename.property"
+
+#Quarkus properties
+quarkus.http.port=8082
+https://quarkus.io/guides/all-config
+.....................................................................................
 
 
 

@@ -1,0 +1,748 @@
+     		       Quarkus - Database Integration
+.....................................................................................
+			        Quarkus-ORM
+			   JPA,Hibernate,Panache ....................................................................................
+
+Microservice design pattern called "Database Per Service" Pattern , according to that pattern Quarkus implments datasource configuration.
+
+quarkus.datasource."ServiceName".dsproperties=value
+
+eg:
+quarkus.datasource.db-kind=h2
+quarkus.datasource.username=username-default
+quarkus.datasource.jdbc.url=jdbc:h2:mem:default
+quarkus.datasource.jdbc.max-size=13
+
+quarkus.datasource.users.db-kind=h2
+quarkus.datasource.users.username=username1
+quarkus.datasource.users.jdbc.url=jdbc:h2:mem:users
+quarkus.datasource.users.jdbc.max-size=11
+
+quarkus.datasource.inventory.db-kind=h2
+quarkus.datasource.inventory.username=username2
+quarkus.datasource.inventory.jdbc.url=jdbc:h2:mem:inventory
+quarkus.datasource.inventory.jdbc.max-size=12
+
+quarkus.datasource.customers.db-kind=postgresql 
+quarkus.datasource.customers.username=<your username>
+quarkus.datasource.customers.password=<your password>
+quarkus.datasource.customers.jdbc.url=jdbc:postgresql://localhost:5432/hibernate_orm_test
+quarkus.datasource.customers.jdbc.max-size=16
+
+
+DbKind: Type of database
+common db-kind value conventions
+
+DB2: db2
+
+Derby: derby
+
+H2: h2
+
+MariaDB: mariadb
+
+Microsoft SQL Server: mssql
+
+MySQL: mysql
+
+Oracle: oracle
+
+PostgreSQL: postgresql, pgsql or pg
+
+....................................................................................
+
+Eg:
+application.properties
+
+#Default datasource
+quarkus.datasource.db-kind=h2
+#Customer Service datasource
+#quarkus.datasource.serviceName.property(XXX)
+quarkus.datasource.customers.db-kind=h2
+
+#User service
+quarkus.datasource.users.db-kind=h2
+
+#Order Service
+#quarkus.datasource.orders.db-kind=pgsql
+#quarkus.datasource.orders.username=foo
+#quarkus.datasource.orders.password=foo
+
+
+pom.xml
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-agroal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-h2</artifactId>
+    </dependency>
+
+Model:
+package com.ibm.ds.model;
+
+public class Customer {
+    private int id;
+    private String name;
+
+    public Customer() {
+    }
+
+    public Customer(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+Service:
+package com.ibm.ds.service;
+
+import com.ibm.ds.model.Customer;
+import io.agroal.api.AgroalDataSource;
+import io.quarkus.agroal.DataSource;
+
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+@ApplicationScoped
+public class CustomerService {
+
+    //inject datasource according to service
+    @Inject
+    @DataSource("customers")
+    AgroalDataSource customerDataSource;
+    List<Customer> customers = new ArrayList<>();
+
+    @PostConstruct
+    public void init() {
+        System.out.println("H2- db init is called");
+
+        Connection connection = null;
+        try {
+            connection = customerDataSource.getConnection();
+            System.out.println("H2 connection " + connection);
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("CREATE TABLE customer(id INT NOT NULL,  name VARCHAR(50))");
+            stmt.executeUpdate("INSERT INTO customer " + "VALUES (101, 'Dhivya Sree')");
+            stmt.executeUpdate("INSERT INTO customer " + "VALUES (102, 'Srisha')");
+            stmt.executeUpdate("INSERT INTO customer " + "VALUES (103, 'Geetha Subramanian')");
+
+            ResultSet rs = stmt.executeQuery("select * from customer");
+            while (rs.next()) {
+                customers.add(new Customer(rs.getInt(1), rs.getString(2)));
+            }
+            stmt.close();
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(connection);
+    }
+    public List<Customer> listCustomers() {
+        return customers;
+    }
+
+}
+
+Resource:
+package com.ibm.ds.resource;
+
+import com.ibm.ds.model.Customer;
+import com.ibm.ds.service.CustomerService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import java.util.List;
+
+@Path("/customers")
+public class CustomerResource {
+
+    @Inject
+    CustomerService customerService;
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Customer> list() {
+        return customerService.listCustomers();
+    }
+}
+....................................................................................
+			  ORM Integration -  JPA-Hibernate
+....................................................................................
+
+Steps:
+0.application configuration
+1.create entity class
+2.create service class which implements curd operations
+3.create rest service to access those curd operations
+
+Dependency:
+<dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-orm</artifactId>
+    </dependency>
+   <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-h2</artifactId>
+    </dependency>
+
+
+application.properties
+#Default datasource
+quarkus.datasource.db-kind=h2
+#Customer Service datasource
+#quarkus.datasource.serviceName.property(XXX)
+quarkus.datasource.customers.db-kind=h2
+
+#User service
+quarkus.datasource.users.db-kind=h2
+
+#Order Service
+#quarkus.datasource.orders.db-kind=pgsql
+#quarkus.datasource.orders.username=foo
+#quarkus.datasource.orders.password=foo
+
+#hibernate properties
+quarkus.hibernate-orm.database.generation=drop-and-create
+quarkus.hibernate-orm.log.sql=true
+
+
+
+
+
+
+
+1.create entity class - using jpa specification
+
+package com.ibm.ds.model;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "events")
+public class Event {
+    @Id
+    @SequenceGenerator(name = "eventseq", sequenceName = "event_id_seq", allocationSize = 1, initialValue = 1)
+    @GeneratedValue(generator = "eventseq")
+    private int eventId;
+    @Column(name = "event_title")
+    private String title;
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "event_date")
+    private Date eventDate;
+
+    public Event() {
+    }
+
+    public Event(String title, Date eventDate) {
+        this.title = title;
+        this.eventDate = eventDate;
+    }
+
+    public int getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(int eventId) {
+        this.eventId = eventId;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public Date getEventDate() {
+        return eventDate;
+    }
+
+    public void setEventDate(Date eventDate) {
+        this.eventDate = eventDate;
+    }
+}
+
+Service:
+package com.ibm.ds.service;
+
+import com.ibm.ds.model.Event;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
+import java.util.Date;
+import java.util.List;
+
+@ApplicationScoped
+public class EventService {
+
+    @Inject
+    EntityManager entityManager;
+    public List<Event> findAll() {
+        //JPQL - Java Persistency Query Language
+        return entityManager.createQuery("SELECT e FROM Event e", Event.class).getResultList();
+    }
+    @Transactional
+    public void createEvent() {
+        Event event = new Event("Our very first event!", new Date());
+        //entityManager.getTransaction().begin();
+        entityManager.persist(event);
+        //entityManager.getTransaction().commit();
+    }
+}
+Resource:
+package com.ibm.ds.resource;
+
+import com.ibm.ds.service.EventService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+@Path("/events")
+public class EventResource {
+
+    @Inject
+    EventService eventService;
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response listEvents() {
+        return Response.ok(eventService.findAll()).build();
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createEvent() {
+        eventService.createEvent();
+        return Response.status(201).entity("Event Created").build();
+    }
+}
+...................................................................................
+				Hibernate ORM With PANACHE
+...................................................................................
+
+Hibernate ORM is the de facto JPA implementation and offers you the full breadth of an object relational mapper. It makes complex mappings possible but it does not give simple apis.
+Hibernate Panache is wrapper on the top of Hibernate orm which makes code simple , more readable and simple.
+
+Panche is a framework built by Red hat for quarkus which is similar to "Spring CURD Repostories"
+
+In General, curd is implemented using
+
+JPA and Hibernate specific apis, this is makes our code tightly coupled.
+
+DAO Design pattern abstracts away how to handle database operations like DOMAIN Models.
+
+Quarkus offers that abstraction via panache.
+
+Steps:
+quarkus ext add hibernate-orm-panache
+
+
+Panche Entities:
+
+@Entity
+public class Event extends PancheEntity {
+
+}
+
+-It becomes entity and also apis to manipulate Entity
+
+Panche PRogramming can be written using two design patterns
+
+1.Active Record pattern
+2.DAO Pattern or Repository Pattern
+
+
+1.Active Record pattern:
+
+Entity:
+package com.ibm.ds.model;
+
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
+import javax.persistence.Entity;
+import java.time.LocalDate;
+
+@Entity
+public class Person extends PanacheEntity {
+    //entity fields
+    public String name;
+    public LocalDate birthDate;
+
+    //update entity fields
+    //store all names in smaller case only
+    public void setName(String name) {
+        this.name = name.toLowerCase();
+    }
+
+    //get all names in uppercase
+    public String getName() {
+        return name.toUpperCase();
+    }
+
+    //extra methods
+    public static Person findByName(String name) {
+        return find("name", name).firstResult();
+    }
+
+    public static void deleteStefs() {
+        delete("name", "Stef");
+    }
+}
+
+Service:
+package com.ibm.ds.service;
+
+
+import com.ibm.ds.model.Person;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.transaction.Transactional;
+import java.time.LocalDate;
+import java.time.Month;
+import java.util.List;
+
+@ApplicationScoped
+public class PersonService {
+    public List<Person> findAll() {
+        return Person.listAll();
+    }
+
+    @Transactional
+    public String createPerson(Person newPerson) {
+//        Person person = new Person();
+        //person.name = newPerson.name;
+        newPerson.birthDate = LocalDate.of(1981, Month.APRIL, 10);
+        //save into db
+        Person.persist(newPerson);
+        return "Created";
+    }
+
+    public Person findByName(String name) {
+        return Person.findByName(name);
+    }
+}
+
+Resource :
+package com.ibm.ds.resource;
+
+import com.ibm.ds.model.Person;
+import com.ibm.ds.service.PersonService;
+
+import javax.ws.rs.*;
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/persons")
+public class PersonResource {
+
+    @Inject
+    PersonService personService;
+
+    @GET
+    public Response findAll() {
+        // return Response.ok().entity(Person.listAll()).build();
+        return Response.ok().entity(personService.findAll()).build();
+    }
+
+    @GET
+    @Path("/{name}")
+    public Response findByName(@PathParam("name") String name) {
+        // return Response.ok().entity(Person.listAll()).build();
+        return Response.ok().entity(personService.findByName(name)).build();
+    }
+
+
+    @POST
+    @Path("/create")
+    public Response createPerson(Person person) {
+        return Response.ok(personService.createPerson(person)).build();
+    }
+}
+..................................................................
+			DAO Pattern or Repository Pattern
+
+
+Similar like JPA pattern.
+
+Entity:
+package com.ibm.ds.model;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "orders")
+public class Order {
+    @Id
+    @GeneratedValue
+    private int id;
+    private double orderValue;
+    private String orderdesc;
+
+    public Order() {
+    }
+
+    public Order(double orderValue, String orderdesc) {
+        this.orderValue = orderValue;
+        this.orderdesc = orderdesc;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public double getOrderValue() {
+        return orderValue;
+    }
+
+    public void setOrderValue(double orderValue) {
+        this.orderValue = orderValue;
+    }
+
+    public String getOrderdesc() {
+        return orderdesc;
+    }
+
+    public void setOrderdesc(String orderdesc) {
+        this.orderdesc = orderdesc;
+    }
+}
+
+Repository/Service:
+package com.ibm.ds.service;
+
+import com.ibm.ds.model.Order;
+import io.quarkus.hibernate.orm.panache.PanacheRepository;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class OrderRepository implements PanacheRepository<Order> {
+
+    //extra methods
+
+}
+
+Resource:
+package com.ibm.ds.resource;
+
+
+import com.ibm.ds.model.Order;
+import com.ibm.ds.service.OrderRepository;
+
+import javax.inject.Inject;
+import javax.transaction.Transactional;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+import java.util.List;
+
+@Path("/orders")
+public class OrderResource {
+
+    @Inject
+    OrderRepository orderRepository;
+
+    @GET
+    public List<Order> findAll() {
+        return orderRepository.findAll().list();
+    }
+
+    @POST
+    @Transactional
+    public Response createOrder(Order order) {
+        orderRepository.persist(order);
+        //orderRepository.persist(new Order(1992323.78, "Building materials"));
+        return Response.ok().entity(orderRepository.listAll()).build();
+    }
+}
+
+From client(Post Man)
+
+POST /orders
+
+{
+    "orderValue": 3434.78,
+    "orderdesc": "Food"
+}
+		Complete CURD using Panche
+
+package org.acme.entity;
+
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import java.util.Date;
+
+@Entity
+@Table(name = "events")
+public class Event extends PanacheEntity {
+    @Column(name = "event_title")
+    public String title;
+    @Column(name = "event_date")
+    public Date eventDate;
+
+    //custom api
+    public static Event findByTitle(String title) {
+        return find("title", title).firstResult();
+    }
+}
+............................................................................................
+package org.acme;
+
+import org.acme.entity.Event;
+import org.jboss.resteasy.annotations.jaxrs.PathParam;
+
+import javax.transaction.Transactional;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+import java.net.URI;
+import java.util.Date;
+import java.util.List;
+
+@Path("/events")
+@Produces(MediaType.APPLICATION_JSON)
+public class EventResource {
+
+    @GET
+    public List<Event> list() {
+        return Event.listAll();
+    }
+
+    @GET
+    @Path("/{id}")
+    public Event get(@PathParam("id") Long id) {
+        Event event = Event.findById(id);
+        if (event == null) {
+            throw new WebApplicationException("Event with Id of " + id + " Not Found");
+        }
+        return event;
+    }
+
+    @GET
+    @Path("/search/{name}")
+    public Event search(@PathParam("name") String name) {
+        Event event = Event.findByTitle(name);
+        if (event == null) {
+            throw new WebApplicationException("Event with Name of " + name + " Not Found");
+        }
+        return event;
+    }
+
+    @GET
+    @Path("/count")
+    public Response countEvents(@PathParam("name") String name) {
+        return Response.ok(Event.count()).build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    public void removeEvent(@PathParam("id") Long id) {
+        Event event = Event.findById(id);
+        if (event == null) {
+            throw new WebApplicationException("Event with Id of " + id + " Not Found");
+        }
+        event.delete();
+    }
+
+    @PUT
+    @Path("/{id}")
+    @Transactional
+    public Response updateEvent(@PathParam("id") Long id, Event event) {
+        Event foundEvent = Event.findById(id);
+        if (foundEvent == null) {
+            throw new WebApplicationException("Event with Id of " + id + " Not Found");
+        }
+        //update
+        foundEvent.title = event.title;
+        return Response.ok(foundEvent.id + foundEvent.title + "has been modified").build();
+    }
+
+    @POST
+    @Transactional
+    public Response createEvent(Event event) {
+        event.eventDate = new Date();
+        event.persist();
+        return Response.created(URI.create("/events/" + event.id)).build();
+    }
+
+    //inner class
+    @Provider
+    public class ErrorMapper implements ExceptionMapper<Exception> {
+        @Override
+        public Response toResponse(Exception exception) {
+            return Response.status(500).entity(exception.getMessage()).build();
+        }
+    }
+}
+..............................................................................................
+
+
+
+
+
+
+
+
+
+
+
+
+

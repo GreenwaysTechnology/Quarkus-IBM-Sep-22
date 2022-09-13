@@ -61,3 +61,85 @@ New Features to be added:
 3.Inject book authors and price as DI into BookService class
 4.You have to write interceptor for BookService Bean to watch the book operations 
 ...................................................................................
+Assignment -3: 
+ You have to build book Resource
+
+/api/books
+=>FindAll books
+=>findBook by isbn, author
+=>filter books by category and language - userinterface,microservices
+=>save new book 
+=>remove existing book - by isbn
+=>update book information
+
+Model : isbn,author,title,publisher,dateofpublishing,edition
+
+Database: in memory datastructure -  List or Set or Map - Findout approiate collection
+
+Features:
+
+->Resource Locators  
+->The api should return data in two formats - XML and JSON -negoation
+->Exception Handling
+   ->Suppose if given bookid not available
+  Add : Resouce Specific Exception class 
+        Global Exceptions
+->Add BookService Layer , keep all book apis,From Rest api you have to call service methods
+  Use DI
+
+->Generate 16 digit ISBN and 32 digit ISBN code via ISBN Generator class
+->Inject ISBNGenerator ServiceBean into BookService - Which ISBN Digit you want- DI
+->Inject book authors and price as DI into BookService class
+->You have to write interceptor for BookService Bean to watch the book operations 
+
+New features:
+ -Add Configuration data for some book, read from the configuration source
+ -Profile based config
+ -properties
+ -Yaml
+ -@config vs @configMapping/@ConfigProperties
+.......
+Assignment - 4 : 
+ You have to build book Resource
+
+/api/books
+=>FindAll books
+=>findBook by isbn, author
+=>filter books by category and language - userinterface,microservices
+=>save new book 
+=>remove existing book - by isbn
+=>update book information
+
+Model : isbn,author,title,publisher,dateofpublishing,edition
+
+Database: in memory datastructure -  List or Set or Map - Findout approiate collection
+
+Features:
+
+->Resource Locators  
+->The api should return data in two formats - XML and JSON -negoation
+->Exception Handling
+   ->Suppose if given bookid not available
+  Add : Resouce Specific Exception class 
+        Global Exceptions
+->Add BookService Layer , keep all book apis,From Rest api you have to call service methods
+  Use DI
+
+->Generate 16 digit ISBN and 32 digit ISBN code via ISBN Generator class
+->Inject ISBNGenerator ServiceBean into BookService - Which ISBN Digit you want- DI
+->Inject book authors and price as DI into BookService class
+->You have to write interceptor for BookService Bean to watch the book operations 
+->Add Configuration data for some book, read from the configuration source
+ -Profile based config
+ -properties
+ -Yaml
+ -@config vs @configMapping
+
+New Features:
+
+ Convert your Book inmemory into  database
+ Implementation:
+   JPA-Hibernate-Panche
+    ->USING Active Record Pattern
+    ->Using DAO/Repository Pattern
+  Try both Patterns , see the differences.
