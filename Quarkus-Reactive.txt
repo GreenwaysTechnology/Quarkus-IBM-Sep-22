@@ -1,0 +1,591 @@
+
+What is Reactive Programming?
+  An API for asynchronous programming with observable streams
+
+What is Asynchronous Programming / Non Blocking ? How Quarkus implements Non Blocking ?
+ Quarkus framework is fully non blocking...
+
+
+How Quarkus apps are deployed?
+ -Quarkus apps are deployed on the top of Engine "Vertx" engine.
+
+.....................................................................................
+				 File Descriptors
+.....................................................................................
+
+1.File descriptors is simple array(ds)
+2.File descriptor is associated with every process on os- if you run more than one process - will have more file descriptor table
+
+ jvm---------> fd 
+ browser-----> fd
+ notepad ---> fd
+
+fd is created when process is created, destroyed when process is destroyed...
+
+FD arch:
+Integer value	Name	<unistd.h> symbolic constant[1]	<stdio.h> file stream[2]
+0	Standard input	STDIN_FILENO	stdin
+1	Standard output	STDOUT_FILENO	stdout
+2	Standard error	STDERR_FILENO	stderr
+
+These values are standard which cant be altered.
+
+Lets assume if you write a program to read data from the harddrive.
+
+Network io and web server:
+
+Any web server if you take, it works based on io model- socket-network io.
+
+Traditional web server, for every client request is  handled inside server by a thread.
+
+        "Request Per Thread model"
+
+Non blocking io implementations
+
+linux:
+
+1.select + read - first implementation
+   PULL model - if data ready make a call, get data
+   
+2.Poll api
+   push model
+
+3.Epoll api
+...................................................................................
+     Quarkus is non blocking means which uses limited no of threads which handle io
+particularly socket io(http,tcp..)
+
+What if i have blocking operations - blocking io,Vertx-quarkus offers a separate threads - worker threads 
+  if you want to run blocking operations you can run inside worker threads
+
+blocking (worker threads)+ nonblocking(event loop threads)
+....................................................................................
+			   Reactive 
+
+Reactive programming is a programming model which transfers data with help of streaming pattern without blocking current thread.
+
+Reactive programming offers declarative data processing...
+
+Reactive programming uses event driven programming model which transfer data using three design pattern
+  -observer
+  -iterator
+  -functional programming
+
+Reactive Programming implmentation on java
+
+1.rxjava
+2.project reactor
+3.SmallRye mutiny.
+.....................................................................................
+
+
+Muntiny :
+  Uni
+    0..1
+  Mulit
+    0..N
+
+apis are highly declarative and fluent model(chaining)
+import io.smallrye.mutiny.Uni;
+
+public class FirstProgram {
+
+    public static void main(String[] args) {
+        Uni.createFrom().item("hello")
+           .onItem().transform(item -> item + " mutiny")
+           .onItem().transform(String::toUpperCase)
+           .subscribe().with(item -> System.out.println(">> " + item));
+    }
+}
+
+Steps:
+create a stream, emit data,process data,subscribe
+
+        1.create a Stream - Uni.createFrom
+        2.emit data - item()
+        3.process emited data- onitem().process api- transform api
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Uni;
+
+public class HelloWorld {
+    public static void main(String[] args) {
+          //read data/ - subscribe().with
+        Uni.createFrom().item("Hello")
+                .onItem().transform(item -> item.toUpperCase())
+                .onItem().transform(item -> item + "Mutiny")
+                .subscribe()
+                .with(data -> System.out.println(data), err -> {
+                    System.out.println(err);
+                });
+    }
+}
+
+------------------------------------------------------------------------------------
+
+Structure of data emission:
+
+1.0..1 - fire and forget - ask the data,process it, close the channel
+2.0..N -- fire and stream it - ask the data ,process it ...ask the data..process it ....until data is empty.
+
+Stream can be infinite, Stream can be finite
+
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Multi;
+
+public class MultiDemo {
+    public static void main(String[] args) {
+        Multi.createFrom()
+                .items(1, 23, 33, 4, 2, 10)
+                .onItem().transform(item -> item * 2) // map
+                .filter(item -> item % 2 == 0) //filtering data
+                .select().first(2)
+                .subscribe()
+                .with(data -> System.out.println("data " + data));
+    }
+}
+....................................................................................
+			Quarkus and muntiny
+
+
+Quarkus has implemented munity on every api .
+
+RestEasy with Munity
+Hibernate with Munity
+etc........
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-reactive</artifactId>
+    </dependency>
+...................................................................................
+
+Reactive + non blocking:
+
+package com.ibm.reactive.resource;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import java.util.List;
+
+@Path("/users")
+public class UserResource {
+
+    //api
+    //this is handled by dedicated threads
+    @GET
+    public String getUser(){
+        System.out.println("GET USER API Thread " + Thread.currentThread().getName());
+        return "User";
+    }
+
+    //this is handled by event loop threads
+    //reactive
+    @GET
+    @Path("/reactive")
+    public Uni<String> getUserReactive(){
+        System.out.println("getUserReactive Thread  : " + Thread.currentThread().getName());
+        return Uni.createFrom().item("Hello Reactive");
+    }
+    @GET
+    @Path("/reactive/multi")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Multi<List<String>> getUsersReactive(){
+        System.out.println("getUsersReactive Thread  : " + Thread.currentThread().getName());
+        return Multi.createFrom().item(List.of("Subramanian","Ram","Arun"));
+    }
+}
+
+................................................................................
+			 
+What if your rest api is reactive(nonblocking) , excuted by event loop thread.
+that api is going to call service layer which is having blocking code
+
+blocking code
+1.thread.sleep - blocks the current thread
+2.long cpu taks - while loop
+3.traditional db calls
+4.long network calls 
+5.file io calls
+
+Thread Thread[vert.x-eventloop-thread-0,5,main] has been blocked for 2921 ms, time limit is 2000 ms: io.vertx.core.VertxException: Thread blocked
+        at java.base@11.0.11/java.lang.Thread.sleep(Native Method)
+        at com.ibm.reactive.service.WelcomeService.sayHello(WelcomeService.java:12)
+        at com.ibm.reactive.service.WelcomeService_Subclass.sayHello$$superforward1(Unknown Source)
+        at com.ibm.reactive.service.WelcomeService_Subclass$$function$$1.apply(Unknown Source)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.proceed(AroundInvokeInvocationContext.java:53)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.proceed(InvocationInterceptor.java:62)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.monitor(InvocationInterceptor.java:49)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor_Bean.intercept(Unknown Source)
+        at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:41)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:40)
+        at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:32)
+        at com.ibm.reactive.service.WelcomeService_Subclass.sayHello(Unknown Source)
+        at com.ibm.reactive.service.WelcomeService_ClientProxy.sayHello(Unknown Source)
+        at com.ibm.reactive.resource.WelcomeResource.sayHello(WelcomeResource.java:18)
+        at com.ibm.reactive.resource.WelcomeResource_Subclass.sayHello$$superforward1(Unknown Source)
+        at com.ibm.reactive.resource.WelcomeResource_Subclass$$function$$1.apply(Unknown Source)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.proceed(AroundInvokeInvocationContext.java:53)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.proceed(InvocationInterceptor.java:62)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor.monitor(InvocationInterceptor.java:49)
+        at io.quarkus.arc.runtime.devconsole.InvocationInterceptor_Bean.intercept(Unknown Source)
+        at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:41)
+        at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:40)
+        at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:32)
+        at com.ibm.reactive.resource.WelcomeResource_Subclass.sayHello(Unknown Source)
+        at com.ibm.reactive.resource.WelcomeResource$quarkusrestinvoker$sayHello_5706edf3656df35e5c762075b0e5e321ea7b05bd.invoke(Unknown Source)
+        at org.jboss.resteasy.reactive.server.handlers.InvocationHandler.handle(InvocationHandler.java:29)
+        at io.quarkus.resteasy.reactive.server.runtime.QuarkusResteasyReactiveRequestContext.invokeHandler(QuarkusResteasyReactiveRequestContext.java:108)
+        at org.jboss.resteasy.reactive.common.core.AbstractResteasyReactiveContext.run(AbstractResteasyReactiveContext.java:140)
+        at org.jboss.resteasy.reactive.server.handlers.RestInitialHandler.beginProcessing(RestInitialHandler.java:49)
+        at org.jboss.resteasy.reactive.server.vertx.ResteasyReactiveVertxHandler.handle(ResteasyReactiveVertxHandler.java:17)
+        at org.jboss.resteasy.reactive.server.vertx.ResteasyReactiveVertxHandler.handle(ResteasyReactiveVertxHandler.java:7)
+        at io.vertx.ext.web.impl.RouteState.handleContext(RouteState.java:1284)
+        at io.vertx.ext.web.impl.RoutingContextImplBase.iterateNext(RoutingContextImplBase.java:173)
+        at io.vertx.ext.web.impl.RoutingContextImpl.next(RoutingContextImpl.java:140)
+        at io.quarkus.vertx.http.runtime.StaticResourcesRecorder$2.handle(StaticResourcesRecorder.java:84)
+        at io.quarkus.vertx.http.runtime.StaticResourcesRecorder$2.handle(StaticResourcesRecorder.java:71)
+        at io.vertx.ext.web.impl.RouteState.handleContext(RouteState.java:1284)
+        at io.vertx.ext.web.impl.RoutingContextImplBase.iterateNext(RoutingContextImplBase.java:136)
+        at io.vertx.ext.web.impl.RoutingContextImpl.next(RoutingContextImpl.java:140)
+        at io.vertx.ext.web.handler.impl.StaticHandlerImpl.lambda$sendStatic$1(StaticHandlerImpl.java:290)
+        at io.vertx.ext.web.handler.impl.StaticHandlerImpl$$Lambda$871/0x0000000800653040.handle(Unknown Source)
+        at io.vertx.core.impl.future.FutureImpl$3.onSuccess(FutureImpl.java:141)
+        at io.vertx.core.impl.future.FutureBase.lambda$emitSuccess$0(FutureBase.java:54)
+        at io.vertx.core.impl.future.FutureBase$$Lambda$854/0x0000000800650c40.run(Unknown Source)
+        at io.netty.util.concurrent.AbstractEventExecutor.runTask(AbstractEventExecutor.java:174)
+        at io.netty.util.concurrent.AbstractEventExecutor.safeExecute(AbstractEventExecutor.java:167)
+        at io.netty.util.concurrent.SingleThreadEventExecutor.runAllTasks(SingleThreadEventExecutor.java:470)
+        at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:503)
+        at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
+        at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+        at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+        at java.base@11.0.11/java.lang.Thread.run(Thread.java:834)
+
+
+Event loop thread can be blocked only for 2000ms
+
+....
+how to switch thread from event loop thread to workerpool thread?
+
+package com.ibm.reactive.resource;
+
+import com.ibm.reactive.service.WelcomeService;
+import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Uni;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/welcome")
+public class WelcomeResource {
+    @Inject
+    WelcomeService welcomeService;
+
+    @GET
+    @Blocking
+    public Uni<String> sayHello() {
+        System.out.println("SayHello Thread :" + Thread.currentThread().getName());
+        return Uni.createFrom().item(welcomeService.sayHello());
+    }
+}
+package com.ibm.reactive.service;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class WelcomeService {
+
+    public String sayHello(){
+        //i am blocking the event loop
+        try {
+            //instead of thread.sleep, you may call third party apis.
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return "Hello,I am delayed";
+    }
+}
+.....................................................................................
+			 Non blocking database calls
+.....................................................................................
+Panche has extended Mutiny for sending stream of data.
+
+      <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-reactive-panache</artifactId>
+        </dependency>
+     <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-reactive</artifactId>
+        </dependency>
+
+  <!-- Hibernate Reactive uses the reactive-pg-client with PostgreSQL under the hood -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-reactive-pg-client</artifactId>
+        </dependency>
+
+  <!-- We are using RESTEasy Reactive in this quickstart -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+        </dependency>
+
+
+.............................................................................................
+			Reactive Extension-Hibernate-panche
+.............................................................................................
+
+Panche has extended Mutiny for sending stream of data.
+
+      <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-reactive-panache</artifactId>
+        </dependency>
+     <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-hibernate-reactive</artifactId>
+        </dependency>
+
+  <!-- Hibernate Reactive uses the reactive-pg-client with PostgreSQL under the hood -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-reactive-pg-client</artifactId>
+        </dependency>
+
+  <!-- We are using RESTEasy Reactive in this quickstart -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+        </dependency>
+.............................................................................................
+
+Rest api, Hibernate,Jdbc drivers all are non blocking
+............................................................................................
+
+
+Reactive Enitity:
+
+package org.acme.hibernate.orm.panache;
+
+import javax.persistence.Cacheable;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+
+import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+
+@Entity
+@Cacheable
+public class Fruit extends PanacheEntity {
+
+    @Column(length = 40, unique = true)
+    public String name;
+
+    public Fruit() {
+    }
+
+    public Fruit(String name) {
+        this.name = name;
+    }
+
+}
+
+
+package org.acme.hibernate.orm.panache;
+
+import javax.persistence.Cacheable;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+
+import io.quarkus.hibernate.reactive.panache.PanacheEntity;
+
+@Entity
+@Cacheable
+public class Fruit extends PanacheEntity {
+
+    @Column(length = 40, unique = true)
+    public String name;
+
+    public Fruit() {
+    }
+
+    public Fruit(String name) {
+        this.name = name;
+    }
+
+}
+
+
+package org.acme.hibernate.orm.panache;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.hibernate.reactive.panache.Panache;
+import io.quarkus.panache.common.Sort;
+import io.smallrye.mutiny.CompositeException;
+import io.smallrye.mutiny.Uni;
+import org.jboss.logging.Logger;
+import org.jboss.resteasy.reactive.RestPath;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+import java.util.List;
+
+import static javax.ws.rs.core.Response.Status.*;
+
+@Path("fruits")
+@ApplicationScoped
+@Produces("application/json")
+@Consumes("application/json")
+public class FruitResource {
+
+    private static final Logger LOGGER = Logger.getLogger(FruitResource.class.getName());
+
+    @GET
+    public Uni<List<Fruit>> get() {
+        return Fruit.listAll(Sort.by("name"));
+    }
+
+    @GET
+    @Path("{id}")
+    public Uni<Fruit> getSingle(@RestPath Long id) {
+        return Fruit.findById(id);
+    }
+
+    @POST
+    public Uni<Response> create(Fruit fruit) {
+        if (fruit == null || fruit.id != null) {
+            throw new WebApplicationException("Id was invalidly set on request.", 422);
+        }
+
+        return Panache.withTransaction(fruit::persist)
+                .replaceWith(Response.ok(fruit).status(CREATED)::build);
+    }
+
+    @PUT
+    @Path("{id}")
+    public Uni<Response> update(@RestPath Long id, Fruit fruit) {
+        if (fruit == null || fruit.name == null) {
+            throw new WebApplicationException("Fruit name was not set on request.", 422);
+        }
+
+        return Panache
+                .withTransaction(() -> Fruit.<Fruit>findById(id)
+                        .onItem().ifNotNull().invoke(entity -> entity.name = fruit.name)
+                )
+                .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
+                .onItem().ifNull().continueWith(Response.ok().status(NOT_FOUND)::build);
+    }
+
+    @DELETE
+    @Path("{id}")
+    public Uni<Response> delete(@RestPath Long id) {
+        return Panache.withTransaction(() -> Fruit.deleteById(id))
+                .map(deleted -> deleted
+                        ? Response.ok().status(NO_CONTENT).build()
+                        : Response.ok().status(NOT_FOUND).build());
+    }
+
+    /**
+     * Create a HTTP response from an exception.
+     * <p>
+     * Response Example:
+     *
+     * <pre>
+     * HTTP/1.1 422 Unprocessable Entity
+     * Content-Length: 111
+     * Content-Type: application/json
+     *
+     * {
+     *     "code": 422,
+     *     "error": "Fruit name was not set on request.",
+     *     "exceptionType": "javax.ws.rs.WebApplicationException"
+     * }
+     * </pre>
+     */
+    @Provider
+    public static class ErrorMapper implements ExceptionMapper<Exception> {
+
+        @Inject
+        ObjectMapper objectMapper;
+
+        @Override
+        public Response toResponse(Exception exception) {
+            LOGGER.error("Failed to handle request", exception);
+
+            Throwable throwable = exception;
+
+            int code = 500;
+            if (throwable instanceof WebApplicationException) {
+                code = ((WebApplicationException) exception).getResponse().getStatus();
+            }
+
+            // This is a Mutiny exception and it happens, for example, when we try to insert a new
+            // fruit but the name is already in the database
+            if (throwable instanceof CompositeException) {
+                throwable = ((CompositeException) throwable).getCause();
+            }
+
+            ObjectNode exceptionJson = objectMapper.createObjectNode();
+            exceptionJson.put("exceptionType", throwable.getClass().getName());
+            exceptionJson.put("code", code);
+
+            if (exception.getMessage() != null) {
+                exceptionJson.put("error", throwable.getMessage());
+            }
+
+            return Response.status(code)
+                    .entity(exceptionJson)
+                    .build();
+        }
+
+    }
+}
+.....................................................................................
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+

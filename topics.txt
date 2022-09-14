@@ -1,0 +1,17 @@
+Advanced topics:
+...............
+
+1.Reactive Programming
+2.Nonblocking 
+3.Microservice design pattern implementations
+  ->Service communications
+      ->Style
+          - sync /async
+          - Falut Management-patterns
+  ->micro service deployments
+     -docker
+     -kubernetes
+4.how to build native applications- graalvm - cloud native apps
+
+5.Microservice management - mertics
+ 
