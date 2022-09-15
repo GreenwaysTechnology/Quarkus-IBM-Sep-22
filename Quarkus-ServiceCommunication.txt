@@ -1,0 +1,403 @@
+    		 Micro Service - Service Communication
+.....................................................................................
+
+Service (API) Representation:
+
+Service is object- Having methods.
+Methods expose biz logic which returns data in the form of different formats
+ -object, json,xml..
+
+1.REST api
+  In Micro services , rest apis are represented and communicated via http protocal
+
+2.RPC api
+  inter service communication using tcp protocal.
+  back end services
+3.GraphQL api
+
+1.REST api communication in quarkus
+ 
+REST TO REST In Quarkus
+1.MicroProfile  rest client
+2.Vertx Web Client Api 
+3.Java 11 HTTP Client api -sync or async
+
+
+Dependency:
+quarkus ext add rest-client
+quarkus ext add rest-client-jackson
+quarkus ext add resteasy-jackson
+
+
+Steps:
+pom.xml
+ <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-client-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-jackson</artifactId>
+    </dependency>
+
+///service to be called
+
+package org.acme;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService {
+
+    public String sayHello(){
+        return  "Hello Rest Client";
+    }
+
+}
+
+
+package org.acme;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/hellorest")
+public class HelloResource {
+    @Inject
+    HelloService helloService;
+
+    @GET
+    @Path("/client")
+    public String sayHello() {
+        return helloService.sayHello();
+    }
+}
+
+Step 2:
+Interface
+package org.acme.rest.client;
+
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+//http://localhost:8080/hellorest/client
+
+@RegisterRestClient
+@Path("/hellorest")
+public interface HelloRestClientService {
+    //api to invoke third party
+    @Path("/client")
+    @GET
+    String sayHello();
+
+}
+
+Step 3: 
+org.acme.rest.client.CountryService/mp-rest/url=https://restcountries.com
+org.acme.rest.client.CountryService/mp-rest/scope=javax.inject.Singleton
+
+org.acme.rest.client.HelloRestClientService/mp-rest/url=http://localhost:8080
+org.acme.rest.client.HelloRestClientService/mp-rest/scope=javax.inject.Singleton
+
+
+
+Step 3:
+package org.acme;
+
+import org.acme.rest.client.CountryService;
+import org.acme.rest.client.HelloRestClientService;
+import org.acme.rest.model.Country;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.List;
+import java.util.Set;
+
+@Path("/country")
+public class CountryResource {
+
+    @Inject
+    @RestClient
+    CountryService countryService;
+
+    @Inject
+    @RestClient
+    HelloRestClientService helloRestClientService;
+
+    @GET
+    @Path("/name/{name}")
+//    @Produces(MediaType.APPLICATION_JSON)
+    public String findByCountry(@PathParam("name") String name) {
+        return countryService.getByName(name);
+    }
+
+    @GET
+    @Path("/hello")
+    public String hello(){
+        return helloRestClientService.sayHello();
+    }
+
+}
+
+URL:
+http://localhost:8080/country/hello
+
+Task:
+ You have to write a rest api which gets data from the database, other rest api can talk to this api to fetch data.
+Code Refactoring:
+
+if we want to simplifiy in the application.properties with respect to Service Name
+
+application.properties
+org.acme.rest.client.CountryService/mp-rest/url=https://restcountries.com
+org.acme.rest.client.CountryService/mp-rest/scope=javax.inject.Singleton
+
+refactored configuration
+country-api/mp-rest/url=https://restcountries.com
+country-api/mp-rest/scope=javax.inject.Singleton
+
+@Path("/v3.1")
+@RegisterRestClient(configKey = "country-api")
+public interface CountryService {
+    //api to invoke third party
+    @Path("/name/{name}")
+    @GET
+    Set<Country> getByName(@PathParam("name") String name);
+}
+.....................................................................................
+		 RestAPI  service communication Using  vertx webClient.
+....................................................................................
+
+  <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-mutiny-vertx-web-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+
+GreetingResource:
+package org.acme;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+@Path("/hello")
+public class GreetingResource {
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        return "Hello from RESTEasy Reactive!!!!";
+    }
+}
+WebClientResource:
+package org.acme;
+
+import io.smallrye.mutiny.Uni;
+import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.ext.web.client.HttpResponse;
+import io.vertx.mutiny.ext.web.client.WebClient;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
+@Path("/vertxclient")
+public class VertxWebClientResource {
+    @Inject
+    Vertx vertx; // Inject the managed io.vertx.mutiny.core.Vertx instance
+    private WebClient client;
+
+    //
+    @PostConstruct
+    public void init() {
+        System.out.println("init");
+        client = WebClient.create(vertx, new WebClientOptions()
+                .setDefaultHost("localhost")
+                .setDefaultPort(8080)
+        );
+    }
+
+    @GET
+    public Uni<String> Myapi() {
+        return client
+                .get("/hello").send()
+                .onItem().transform(HttpResponse::bodyAsString);
+    }
+}
+.....................................................................................
+ 		 Service Communication with Event Bus
+
+AKKA - Actor Model Based.
+
+Actor model is architure model which describes how data can be exechaned among programs we call services using "message oriented and event driven".
+
+Vertx inspired akka with respect to message passing techniques, now we can pass messages using vertx  "Event Bus".
+
+			   Micro Service Communications
+
+Event Bus:
+ -Event bus is object through which we can exchange messages async.
+ -Event bus is just like message broker which in memory message broker
+ -Event bus uses queue to store messages
+ -Event bus communicates via tcp protocal
+ -Event bus can exchange any type of data- including json.
+ -Event can be used to send and receive messages across the system.
+
+Quarkus can Use EventBus for message oriented communication.
+
+
+Event Bus has its own in memory Event queue where all message published.
+
+How consumer and publisher are connectected?
+
+ Via address :Messages are sent on the event bus to an address.
+address should be unique, can follow dns naming model
+
+ ibm.order
+ ibm.order.inventory
+
+
+Types of message Delivery:
+
+1.point to point -  
+  send messages to only one consumer.
+2.Publisher/Subscriber  - pub sub model
+  One publisher many subscribers
+3.request/reply
+    send messages to only one consumer with ack.
+
+
+How to use vertx Event inside Quarkus?
+
+-vertx
+
+ <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx</artifactId>
+</dependency>
+
+
+Programming Steps:
+
+1.Consumer Code
+   -The Service which is listening for messages
+
+Pure vertx code
+EventBus eb = vertx.eventBus();
+
+eb.consumer("news.uk.sport", message -> {
+  System.out.println("I have received a message: " + message.body());
+});
+
+In Quarkus, we have annotation
+
+@ConsumeEvent
+
+
+Api :
+event.request -  request-reply
+eventbus.send -  point to point
+eventbus.publish - pub -sub
+
+
+Publisher Code:
+..............
+Publisher publishes message on given address
+
+Resource Class
+
+package org.acme.eventbus;
+
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.JsonObject;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+
+@Path("/eventbus")
+public class EventBusResource {
+    @Inject
+    EventBus eventBus;
+
+    //publish message
+    @GET
+    @Path("{name}")
+    public String greetMe(@PathParam(value = "name") String name) {
+        //publish message - fire and forgot - eventbus.send -  point to point
+        JsonObject jsonObject = new JsonObject().put("name", name);
+        //publish message
+        eventBus.send("ibm.greet", jsonObject);
+        return "Processed";
+    }
+}
+
+package org.acme.eventbus;
+
+import io.quarkus.vertx.ConsumeEvent;
+import io.vertx.core.eventbus.Message;
+import io.vertx.core.json.JsonObject;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class EventConsumer {
+    //method which listens for messages
+    @ConsumeEvent("ibm.greet")
+    public void handler(Message<JsonObject> name) {
+        System.out.println(name.body().encodePrettily());
+    }
+}
+
+
+
+
+
+
+
+ 

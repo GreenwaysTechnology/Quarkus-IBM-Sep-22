@@ -143,3 +143,24 @@ New Features:
     ->USING Active Record Pattern
     ->Using DAO/Repository Pattern
   Try both Patterns , see the differences.
+
+.....
+Already you have BookService app.
+ change bookservice port from 8080 - 3000
+
+http://localhost:3000/api/books
+  /list
+  /save
+  /edit
+  /delete
+
+Req:
+ You have to build new app called PublisherService App.
+ Port : 3001.
+
+You have to write service which should consume BookService  via RestClient Spec
+
+Url pattern
+ localhost:3001/api/publisher/book/list   - 
+ localhost:3001/api/publisher/book/create -
+....................................................................................
