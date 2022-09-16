@@ -393,9 +393,11 @@ public class EventConsumer {
         System.out.println(name.body().encodePrettily());
     }
 }
+...................................................................................
+			Service Communications via Rpc frameworks
+				grpc
 
-
-
+https://quarkus.io/guides/grpc-getting-started
 
 
 
