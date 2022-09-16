@@ -330,6 +330,153 @@ E:\session\IBM\2022\sep\quarkus\kubernetes-quickstart>minikube service mykub-dem
 ! Because you are using a Docker driver on windows, the terminal needs to be open to run it.
 
 http://127.0.0.1:55085/hello
+.....................................................................................
+			 How to build Native applications
+.....................................................................................
+
+How we are running java apps?
+
+ we need jvm - which host for java apps.
+ without jvm can we run java apps?
+  Yes - you can run java apps without jvm - Native apps.
+
+Now a days apps are running inside containers, which are linux.
+
+Container and java 
+    
+   Your App
+      |
+    jvm
+     |
+   container
+
+container and java native
+
+  Your App(native)
+      |
+      |
+   container
+....................................................................................
+			 can we migrate any java apps into native apps							using graalvm directly
+No, we need lot of api changes
+ 
+...................................................................................
+Quarkus(red hat) and GraalVM (Oracle) who jointly build a wrapper for Quarkus echo system to convert any quarkus apps into native apps
+  
+   Mandrel: A specialized distribution of GraalVM for Quarkus
+
+.....................................................................................
+
+How to prepare Quarkus native apps?
+
+1.via os dependency
+  you can build native apps for os directly
+
+if you want to build native app for windows , you can 
+if you want to build native app for linux , you can 
+
+Setup:
+ 1.install graalvm 
+ 2.you can build project
+
+
+2.via docker
+
+ through docker we can build native image, which can be deployed on container.
+.................................................................................
+How to run quarkus app?
+
+1.dev mode
+ mvn compile quarkus:dev
+
+2.prod mode
+
+JVM mode:
+
+2.1.create normal jar and run
+mvn package
+mvnw package
+ It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
+Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+
+The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+
+2.2.Uber jar deployment
+If you want to build an _über-jar_, execute the following command:
+```shell script
+./mvnw package -Dquarkus.package.type=uber-jar
+```
+
+The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+
+java -jar target/native-quarkusapp-1.0.0-SNAPSHOT-runner.jar
+  
+Native Mode:
+
+With graal vm installed on any os:
+./mvnw package -Pnative
+
+Or, if you don't have GraalVM installed, you can run the native executable build in a container using: 
+```shell script
+./mvnw package -Pnative -Dquarkus.native.container-build=true
+```
+
+in order to test , you need linux or you can prepare via docker.
+
+./target/native-quarkusapp-1.0.0-SNAPSHOT-runner
+....................................................................................
+				Docker Deployment
+.....................................................................................
+
+if you want to deploy application on docker container we have many mode
+
+1.jvm mode
+  package your code  run on jvm inside docker.
+
+dockerfile.jvm
+####
+# This Dockerfile is used in order to build a container that runs the Quarkus application in JVM mode
+#
+# Before building the container image run:
+#
+# ./mvnw package
+#
+# Then, build the image with:
+#
+# docker build -f src/main/docker/Dockerfile.jvm -t quarkus/native-quarkusapp-jvm .
+....................................................................................
+
+Use case : 
+
+ - Native image(linux binary)
+    if no graal setup
+      build native image via docker engine
+       mvnw package -Pnative -Dquarkus.native.container-build=true - if you dont have graal setup follow this
+     
+     if you want to on linux
+        run    "./target/native-quarkusapp-1.0.0-SNAPSHOT-runner . "
+
+     if you want to run on windows
+        pack native image inside docker , run container
+  docker build -f src/main/docker/Dockerfile.native -t quarkus/native-quarkusapp .
+.....................................&&............................................. 
+   
+	
+ 
+       
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 
 
